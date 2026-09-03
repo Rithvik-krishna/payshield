@@ -1,55 +1,79 @@
-# PayShield AI 🛡️
-### Real-Time Fraud Intelligence Platform for Digital Payments
+# PayShield AI ???
+### Autonomous Real-Time Fraud Intelligence & AIOps Platform for Digital Payments
 
-PayShield AI is a modular, production-grade fraud detection platform built for modern digital payment ecosystems. It combines machine learning, behavioral analytics, and graph-based intelligence to generate explainable, real-time fraud risk scores — designed with scalability, resilience, and extensibility in mind.
+PayShield AI is a modular, production-grade fraud detection platform built for modern digital payment ecosystems (UPI, NEFT, RTGS, Cards). It combines a **6-Model Machine Learning Ensemble**, **Google Gemini GenAI Explainability**, **Decentralized Blockchain Ledgers**, and **AWS S3 Cloud Compliance Archival** to generate transparent, real-time risk scores with sub-100ms latency.
 
 ---
 
 ## Why PayShield AI?
 
-Digital payment systems face increasingly sophisticated threats — account takeovers, transaction laundering, fraud rings, and social engineering attacks. PayShield AI addresses these with a multi-layered intelligence pipeline that works in real time, at scale, without sacrificing explainability.
+Digital payment systems face increasingly sophisticated threats ? synthetic identities, mule accounts, coordinated fraud rings, and Business Email Compromise (BEC). PayShield AI addresses these with a multi-layered intelligence pipeline that works in real time, at scale, without sacrificing explainability or regulatory compliance.
 
 ---
 
-## Features ✨
+## Core Capabilities ?
 
-- **Real-Time Risk Scoring** — Ensemble ML models evaluate every transaction instantly
-- **Behavioral Intelligence** — Detect unusual user patterns and temporal anomalies
-- **Graph-Based Detection** — Identify fraud rings and shared entities via network analysis
-- **BEC Detection (NLP)** — Analyze emails for Business Email Compromise signals
-- **SMS Fraud Signals** — Parse and score incoming bank SMS alerts
-- **Blockchain Audit Logging** — High-risk events logged to a tamper-resistant ledger
-- **Fault-Tolerant Architecture** — Fallback scoring keeps the system running if ML services go down
-
----
-
-## Architecture
-Frontend (React + Vite)
-↓
-Backend API (Node.js + Express)
-├── ML Engine     (FastAPI / Python)
-├── Email Monitor (IMAP)
-├── SMS Ingestion (HTTP)
-└── Blockchain    (Hardhat / Ethereum)
-
-A loosely coupled, microservices-inspired design — each component is independently deployable and replaceable.
+- **6-Model ML Ensemble** ? Parallel inference across GNN, Bi-LSTM, XGBoost, Behavioral Biometrics, AML Rules, and BEC NLP Transformers.
+- **Google Gemini GenAI Explainability** ? Synthesizes complex mathematical signals and SHAP feature attributions into natural-language forensic rationales.
+- **Interactive Gemini Investigation Assistant** ? Natural-language AI chat interface for fraud analysts to ask contextual questions about flagged transactions.
+- **Dual-Layer Audit Archival (AWS S3 + Blockchain)**:
+  - **AWS S3**: Automated JSON compliance archival for RBI/FINCEN suspicious activity reporting.
+  - **Ethereum Smart Contract**: Decentralized, tamper-resistant SHA-256 fingerprint anchoring.
+- **Multi-Channel Telemetry** ? Real-time Gmail inbox monitoring for executive wire fraud + Android bank SMS webhook ingestion.
+- **AIOps Self-Healing Engine** ? 15-second autonomous SLA recovery powered by Bi-LSTM root cause analysis and dynamic circuit breaker failover.
 
 ---
 
-## ML Pipeline 🤖
+## System Architecture
 
-PayShield AI uses a hybrid ensemble combining supervised, unsupervised, and graph-based models:
+```
+                       ???????????????????????????????????????????
+                       ?       React + Vite Modern Dashboard     ?
+                       ?    (Executive KPI / Forensic Drawer)    ?
+                       ???????????????????????????????????????????
+                                            ? WebSocket / HTTP
+                                            ?
+                       ???????????????????????????????????????????
+                       ?     PayShield Node.js API Gateway       ?
+                       ? (CORS, Rate Limiting, Telemetry Traces) ?
+                       ???????????????????????????????????????????
+                             ?              ?              ?
+         ?????????????????????????          ?     ?????????????????????????
+         ?                       ?          ?     ?                       ?
+???????????????????    ???????????????????    ????????????????????    ????????????????????
+?  FastAPI Core   ?    ? Google Gemini   ?    ? Hardhat / EVM    ?    ? AWS S3 Bucket    ?
+?  (6-Model ML)   ?    ? 3.5 Flash Engine?    ? Smart Contract   ?    ? Regulatory Audit ?
+? GNN/LSTM/XGBoost?    ? Forensic Copilot?    ? Immutable Hash   ?    ? High-Risk Events ?
+???????????????????    ???????????????????    ????????????????????    ????????????????????
+```
 
-| Model | Role |
-|---|---|
-| Graph Neural Network | Detect fraud rings and entity relationships |
-| BiLSTM + Attention | Capture temporal transaction patterns |
-| XGBoost | Structured tabular classification |
-| LightGBM | Efficient gradient-boosted scoring |
-| Isolation Forest | Unsupervised anomaly detection |
-| NLP Classifier | Flag suspicious financial communications |
+---
 
-**Fraud patterns detected:** Smurfing, layering, circular transactions, fan-out behavior
+## ?? AI & Machine Learning Pipeline
+
+PayShield AI uses a hybrid ensemble combining deep learning, gradient boosting, and generative intelligence:
+
+| Model / Service | Role | Key Detection Focus |
+|---|---|---|
+| **Graph Neural Network (GNN)** | Network Topology | Mule rings, synthetic accounts, device clustering |
+| **Bi-LSTM + Attention** | Sequential Anomaly | Sudden spending bursts, velocity shifts |
+| **XGBoost & LightGBM** | Tabular Inference | Historical transaction patterns across 500+ trees |
+| **Behavioral Biometrics** | Human Telemetry | Typing cadence deviation, touch pressure, copy-paste |
+| **AML Graph Engine** | Anti-Money Laundering | Smurfing, layering, circular flows, threshold structuring |
+| **BEC Transformer (NLP)** | Memo & Email Text | Urgency markers, IBAN modification, coercion |
+| **Google Gemini 3.5 Flash** | GenAI Explainability | Analyst-grade natural language explanations & chat copilot |
+
+---
+
+## ?? Cloud & Regulatory Compliance: AWS S3 + Gemini
+
+### 1. Google Gemini GenAI Copilot
+* **Natural-Language Rationales**: Translates high-dimensional SHAP values and model consensus into clear, plain-language sentences under 20 words for security operations.
+* **Ask PayShield Copilot (`/api/assistant/ask`)**: An interactive assistant that understands transaction payloads and provides direct forensic verdicts without technical jargon.
+
+### 2. AWS S3 Audit Archival (`awsAuditStore.js`)
+* Automatically packages high-risk and quarantined events into immutable JSON audit dossiers.
+* Pushes to Amazon S3 (`fraud-events/{txId}.json`) with server-side encryption to meet RBI, FINRA, and GDPR audit retention guidelines.
 
 ---
 
@@ -57,72 +81,44 @@ PayShield AI uses a hybrid ensemble combining supervised, unsupervised, and grap
 
 | Layer | Technology |
 |---|---|
-| Frontend | React + Vite |
-| Backend | Node.js + Express |
-| ML Engine | Python + FastAPI |
-| Blockchain | Hardhat (local Ethereum node) |
-| Real-Time Comms | WebSockets |
-| Data Simulation | Python |
+| **Frontend** | React 18, Vite, Framer Motion, Lucide Icons |
+| **Backend Gateway** | Node.js, Express, WebSockets, OpenTelemetry |
+| **ML Engine** | Python 3.11, FastAPI, PyTorch, Scikit-learn, XGBoost |
+| **GenAI** | Google Gemini API (`gemini-3.5-flash`) |
+| **Cloud Storage** | AWS S3 SDK (`@aws-sdk/client-s3`) |
+| **Blockchain** | Hardhat, Ethers.js, Solidity Smart Contracts |
+| **AIOps & Monitoring** | Prometheus, Grafana, Jaeger Tracing, Loki |
+| **Caching** | Redis / In-Memory Resilient Fallback |
 
 ---
 
-## Getting Started 🚀
+## Environment Configuration
 
-### Prerequisites
+Create a `.env` file in `backend/` with the following variables:
 
-- Node.js >= 18
-- Python >= 3.10
-- npm or yarn
-- Git
+```env
+# Server
+PORT=3001
+NODE_ENV=production
 
-### 1. Clone the Repository
+# Machine Learning Engine
+ML_SERVICE_URL=http://localhost:8000
 
-```bash
-git clone https://github.com/<your-username>/payshield-ai.git
-cd payshield-ai
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# AWS S3 Compliance Archival
+AWS_REGION=eu-north-1
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+S3_BUCKET_NAME=payshield-fraud-audit-bucket
+
+# Blockchain
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
+
+# Email & SMS Ingestion (Demo Mode)
+DEMO_USER_EMAIL=rithvikkrishnadk@gmail.com
 ```
-
-### 2. Start the Blockchain Node
-
-```bash
-cd Blockchain
-npx hardhat node
-```
-
-### 3. Deploy Smart Contracts
-
-```bash
-npx hardhat compile
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-### 4. Start the ML Engine
-
-```bash
-cd ml-engine
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --port 8000
-```
-
-### 5. Start the Backend
-
-```bash
-cd backend
-npm install
-node src/server.js
-```
-
-### 6. Start the Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Visit: [http://localhost:5173](http://localhost:5173)
 
 ---
 
@@ -130,54 +126,46 @@ Visit: [http://localhost:5173](http://localhost:5173)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/transactions/submit` | Submit a transaction for fraud scoring |
-| `GET` | `/api/transactions/history` | Retrieve transaction history |
-| `POST` | `/api/email/test-bec` | Analyze an email for BEC signals |
-| `POST` | `/api/sms/incoming` | Process an incoming SMS alert |
-| `GET` | `/health` | Service health check |
+| `POST` | `/api/transactions/submit` | Submit payment for 6-model ML scoring and blockchain logging |
+| `GET` | `/api/transactions/history` | Retrieve real-time transaction ledger |
+| `POST` | `/api/assistant/ask` | Query Gemini Copilot regarding a transaction or recent alerts |
+| `POST` | `/api/fraud/simulate` | Execute multi-transaction attack patterns (Bot, Ring, ATO) |
+| `POST` | `/api/email/test-bec` | Ingest and analyze email memo via NLP transformer |
+| `POST` | `/api/sms/incoming` | Ingest bank debit SMS alert via webhook |
+| `GET` | `/api/reports/compliance` | Generate regulatory AML metrics and SAR filing data |
+| `GET` | `/health` | Core gateway health and scoring mode |
 
 ---
 
-## Design Principles
+## Getting Started Locally ??
 
-- **Explainability First** — Risk scores are transparent and interpretable, not black boxes
-- **Resilience** — The system degrades gracefully under partial failure
-- **Modularity** — Components are independently replaceable and scalable
-- **Security-Conscious** — No credentials or sensitive data in the codebase
+### 1. Clone & Install
+```bash
+git clone https://github.com/Rithvik-krishna/payshield.git
+cd payshield
+```
 
----
+### 2. Run with Docker Compose (Recommended)
+```bash
+docker compose up -d --build
+```
 
-## Security
+### 3. Or Run Locally:
+```bash
+# Terminal 1: Hardhat Node
+cd Blockchain && npx hardhat node
 
-- Use environment variables for all secrets and API keys
-- Never commit `.env` files to version control
-- Do not use real financial or personal data in development or testing
+# Terminal 2: ML Engine
+cd ml-engine && uvicorn main:app --port 8000
 
----
+# Terminal 3: Backend API
+cd backend && npm install && node src/server.js
 
-## Contributing 🤝
+# Terminal 4: Frontend
+cd frontend && npm install && npm run dev
+```
 
-Contributions are welcome across all areas:
-
-- Machine learning improvements and experimentation
-- Backend API design and optimization
-- Frontend visualization and UX enhancements
-- Fraud detection research and feature engineering
-
-**Good first issues:**
-- Improve model explainability outputs
-- Add new fraud detection heuristics
-- Enhance API validation and error handling
-- Optimize real-time processing performance
-
----
-
-## Roadmap 🗺️
-
-- [ ] Cloud-native deployment (Docker + Kubernetes)
-- [ ] Integration with real-world financial APIs
-- [ ] Advanced explainability dashboards
-- [ ] Event-driven streaming architecture (Kafka)
+Visit: **[http://localhost:5173](http://localhost:5173)**
 
 ---
 
