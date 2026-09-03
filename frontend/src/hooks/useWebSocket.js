@@ -12,16 +12,34 @@ export default function useWebSocket() {
   const setWsConnected = useFraudStore((state) => state.setWsConnected);
 
   useEffect(() => {
-    const socket = new WebSocket(import.meta.env.VITE_WS_URL || "ws://localhost:3001");
-    socket.onopen = () => setWsConnected(true);
-    socket.onclose = () => setWsConnected(false);
-    socket.onerror = () => setWsConnected(false);
-    socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data);
-      switch (payload.type) {
-        case "CONNECTED":
-          setWsConnected(true);
-          break;
+    let socket = null;
+    let reconnectTimeout = null;
+    let isDisposed = false;
+
+    function connect() {
+      if (isDisposed) return;
+      try {
+        socket = new WebSocket(import.meta.env.VITE_WS_URL || "ws://localhost:3001");
+        socket.onopen = () => {
+          if (!isDisposed) setWsConnected(true);
+        };
+        socket.onclose = () => {
+          if (!isDisposed) {
+            setWsConnected(false);
+            reconnectTimeout = setTimeout(connect, 2000);
+          }
+        };
+        socket.onerror = () => {
+          if (!isDisposed) setWsConnected(false);
+        };
+        socket.onmessage = (event) => {
+          if (isDisposed) return;
+          try {
+            const payload = JSON.parse(event.data);
+            switch (payload.type) {
+              case "CONNECTED":
+                setWsConnected(true);
+                break;
         case "NEW_TRANSACTION":
           if (["MANUAL", "RESILIENCE", "LIVE_WEBHOOK"].includes(payload.data?.source)) {
             addTransaction(payload.data);
@@ -75,6 +93,14 @@ export default function useWebSocket() {
           break;
       }
     };
-    return () => socket.close();
-  }, [addEmailFeedItem, addSmsFeedItem, addTransaction, mergeEmailFeedItem, pushToast, setGmailConnected, setWsConnected, updateTransaction]);
+  }
+
+  connect();
+
+  return () => {
+    isDisposed = true;
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (socket) socket.close();
+  };
+}, [addEmailFeedItem, addSmsFeedItem, addTransaction, mergeEmailFeedItem, pushToast, setGmailConnected, setWsConnected, updateTransaction]);
 }

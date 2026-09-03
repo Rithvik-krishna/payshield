@@ -20,6 +20,7 @@ const telemetry = require("./services/telemetry");
 const runtimeState = require("./services/runtimeState");
 const observabilityLedger = require("./services/observabilityLedger");
 const redisCache = require("./services/redisCache");
+const gmailMonitor = require("./services/gmailMonitor");
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +43,13 @@ wss.on("connection", (ws) => {
   websocketMetricsSync();
   logger.info({ clients: clients.size }, "websocket_connected");
   ws.send(JSON.stringify({ type: "CONNECTED", message: "PayShield AI connected", timestamp: new Date().toISOString() }));
+  const gmailStatus = gmailMonitor.getStatus();
+  ws.send(JSON.stringify({
+    type: "GMAIL_MONITOR_STATUS",
+    status: gmailStatus.connected ? "CONNECTED" : "DISCONNECTED",
+    email: gmailStatus.email,
+    timestamp: new Date().toISOString(),
+  }));
   ws.on("close", () => {
     clients.delete(ws);
     websocketMetricsSync();
@@ -201,7 +209,6 @@ app.post("/debug/cache-fallback", (req, res) => {
   return res.json({ status: "ok", durationMs, cacheMode: redisCache.status().mode });
 });
 
-const gmailMonitor = require("./services/gmailMonitor");
 gmailMonitor.setBroadcast(broadcastToClients);
 gmailMonitor.startGmailMonitor();
 setInterval(refreshRuntimeMetrics, 2000);
