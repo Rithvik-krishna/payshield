@@ -5,12 +5,42 @@ import useFraudStore from "../../store/fraudStore";
 export default function LiveSMSFeed() {
   const [sending, setSending] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [customSms, setCustomSms] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
   const smsFeed = useFraudStore((state) => state.smsFeed);
 
-  const trigger = async () => {
+  const localHost = typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? window.location.hostname
+    : "10.5.14.181";
+  const webhookUrl = `http://${localHost}:3001/api/sms/incoming`;
+
+  const copyWebhook = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const trigger = async (overrideText = null) => {
     setSending(true);
     try {
-      await testSms();
+      const text = overrideText || (customSms.trim() ? customSms.trim() : null);
+      const res = await testSms(text ? { sms: text } : {});
+      if (res && res.status === "scored") {
+        useFraudStore.getState().addSmsFeedItem({
+          type: "LIVE_SMS_SCORED",
+          from: res.from || res.parsed?.bankName || "HDFCBK",
+          raw: res.raw || text || "Bank Alert SMS",
+          parsed: res.parsed,
+          result: res.result,
+          timestamp: new Date().toISOString(),
+        });
+        if (customSms) setCustomSms("");
+      }
+    } catch (err) {
+      console.error("SMS test failed:", err);
     } finally {
       setSending(false);
     }
@@ -19,23 +49,67 @@ export default function LiveSMSFeed() {
   return (
     <div style={{ background: "linear-gradient(135deg, #0d1117, #0a0f1a)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
       <style>{`@keyframes slideRightCard { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }`}</style>
-      <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase" }}>Bank Alert Monitor</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase" }}>Bank Alert Monitor</div>
+        <span style={{ fontSize: 9, color: "#22c55e", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 999, padding: "1px 6px" }}>WEBHOOK ACTIVE</span>
+      </div>
 
-      <button onClick={() => setShowSetup((current) => !current)} style={{ textAlign: "left", background: "rgba(255,255,255,0.03)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 10px", cursor: "pointer", fontSize: 11 }}>
-        Setup Instructions {showSetup ? "▲" : "▼"}
+      <button onClick={() => setShowSetup((current) => !current)} style={{ textAlign: "left", background: "rgba(255,255,255,0.03)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 10px", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>Setup Instructions & Webhook URL</span>
+        <span>{showSetup ? "▲" : "▼"}</span>
       </button>
       {showSetup && (
-        <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6 }}>
-          1. Install SMS Forwarder
-          <br />2. Add HTTP POST to `http://YOUR-IP:3001/api/sms/incoming`
-          <br />3. Filter HDFCBK, ICICIB, SBIPSG, AXISBK
-          <br />4. Make any UPI payment and it appears here
+        <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6, background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 8, border: "1px solid rgba(255,255,255,0.04)" }}>
+          <div><strong>1. Install SMS Forwarder:</strong> Get &apos;SMS Forwarder&apos; from Google Play or F-Droid on your Android phone.</div>
+          <div style={{ marginTop: 4 }}>
+            <strong>2. Target Webhook URL:</strong>
+            <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
+              <code style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", padding: "2px 6px", borderRadius: 4, fontSize: 10, wordBreak: "break-all" }}>{webhookUrl}</code>
+              <button onClick={copyWebhook} style={{ background: copied ? "#22c55e" : "rgba(255,255,255,0.1)", color: copied ? "#000" : "#fff", border: "none", borderRadius: 4, padding: "2px 8px", fontSize: 10, cursor: "pointer" }}>
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+          <div style={{ marginTop: 4 }}><strong>3. Senders:</strong> Set forward filter for <code>HDFCBK, ICICIB, SBIPSG, AXISBK</code>.</div>
+          <div style={{ marginTop: 4 }}><strong>4. Live Processing:</strong> Any UPI or NEFT debit will parse and score in real time.</div>
         </div>
       )}
 
-      <button onClick={trigger} disabled={sending} style={{ background: "#f59e0b", color: "#04131b", border: "none", borderRadius: 12, padding: "10px 12px", fontWeight: 700, cursor: "pointer" }}>
-        {sending ? "Submitting..." : "Test Bank SMS"}
-      </button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => trigger()} disabled={sending} style={{ flex: 1, background: "#f59e0b", color: "#04131b", border: "none", borderRadius: 12, padding: "10px 12px", fontWeight: 700, cursor: "pointer" }}>
+          {sending ? "Processing..." : "Test Bank SMS"}
+        </button>
+        <button onClick={() => setShowCustom((c) => !c)} style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 12px", fontSize: 11, cursor: "pointer" }}>
+          {showCustom ? "Close Custom" : "Custom SMS"}
+        </button>
+      </div>
+
+      {showCustom && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "rgba(0,0,0,0.25)", padding: 8, borderRadius: 10, border: "1px solid rgba(255,255,255,0.05)" }}>
+          <textarea
+            rows={2}
+            value={customSms}
+            onChange={(e) => setCustomSms(e.target.value)}
+            placeholder="Paste your bank SMS alert here..."
+            style={{ width: "100%", background: "#0a0d14", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: 8, fontSize: 11, fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => trigger(customSms)}
+              disabled={sending || !customSms.trim()}
+              style={{ background: "#22c55e", color: "#000", border: "none", borderRadius: 6, padding: "6px 12px", fontWeight: 700, fontSize: 11, cursor: "pointer" }}
+            >
+              Parse &amp; Score
+            </button>
+            <button
+              onClick={() => setCustomSms("INR 15000.00 debited from A/c XX7788 on 23-03-26 to VPA newpayee4821@okhdfcbank. UPI Ref 712345678901. URGENT vendor account update.")}
+              style={{ background: "rgba(255,255,255,0.05)", color: "#94a3b8", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 10, cursor: "pointer" }}
+            >
+              Load High-Risk Sample
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 260, overflow: "auto" }}>
         {smsFeed.length === 0 ? (
