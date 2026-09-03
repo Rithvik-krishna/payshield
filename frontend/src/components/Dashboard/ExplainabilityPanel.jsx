@@ -24,6 +24,7 @@ export default function ExplainabilityPanel({ transaction }) {
 
   const { explanationPayload, score } = useMemo(() => {
     if (!transaction) return { explanationPayload: null, score: 0 };
+    const txScore = Number(transaction.fraudScore || 0);
     const scoreMap = transaction.modelScores || {};
     const exp = transaction.explanation || {};
     const modelFindings = exp.modelFindings || {};
@@ -33,8 +34,8 @@ export default function ExplainabilityPanel({ transaction }) {
       const raw = findModelValue(scoreMap, model.aliases);
       return {
         ...model,
-        contribution: contrib || (score >= 70 ? 0.2 : 0.15),
-        rawScore: raw || (score >= 70 ? 0.75 : 0.08),
+        contribution: contrib || (txScore >= 70 ? 0.2 : 0.15),
+        rawScore: raw || (txScore >= 70 ? 0.75 : 0.08),
         finding: modelFindings[model.key] || model.defaultDesc,
       };
     });
@@ -42,16 +43,16 @@ export default function ExplainabilityPanel({ transaction }) {
     const topFeatures = Array.isArray(exp.topFeatures) && exp.topFeatures.length
       ? exp.topFeatures
       : [
-          { humanReadable: `Amount ${formatINR(transaction.amount)} compared to baseline`, shap_value: score >= 70 ? 0.44 : -0.28 },
-          { humanReadable: `Merchant novelty for ${transaction.merchant || "counterparty"}`, shap_value: score >= 70 ? 0.38 : -0.22 },
-          { humanReadable: `Payment velocity across recent sessions`, shap_value: score >= 70 ? 0.31 : -0.14 },
+          { humanReadable: `Amount ${formatINR(transaction.amount)} compared to baseline`, shap_value: txScore >= 70 ? 0.44 : -0.28 },
+          { humanReadable: `Merchant novelty for ${transaction.merchant || "counterparty"}`, shap_value: txScore >= 70 ? 0.38 : -0.22 },
+          { humanReadable: `Payment velocity across recent sessions`, shap_value: txScore >= 70 ? 0.31 : -0.14 },
         ];
 
     return {
-      score: Number(transaction.fraudScore || 0),
+      score: txScore,
       explanationPayload: {
         naturalLanguageExplanation: exp.naturalLanguageExplanation ||
-          (score >= 70
+          (txScore >= 70
             ? `Transaction escalated because multiple independent detectors (GNN, LSTM, XGBoost) moved outside the learned baseline simultaneously.`
             : `Transaction approved because all six model families stayed near the user's learned baseline profile.`),
         topFeatures,

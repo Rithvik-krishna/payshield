@@ -97,7 +97,7 @@ function MainAppShell() {
         }
         if (modelRes.status === "fulfilled") setMetrics({ blockchain: modelRes.value.modelHash ? "SYNCED" : "SYNCING" });
       });
-  }, [selectedTransaction, setAlerts, setCompliance, setMetrics, setSelectedTransaction, setTransactions]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Periodic metrics
   useEffect(() => {
