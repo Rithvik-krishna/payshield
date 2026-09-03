@@ -37,7 +37,7 @@ export default function LiveEmailMonitor() {
         <div>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase" }}>Email Instruction Monitor</div>
           <div style={{ marginTop: 6, fontSize: 12, color: gmailConnected ? "#22c55e" : "#ef4444", display: "flex", alignItems: "center", gap: 8 }}>
-            Watching am***@gmail.com
+            Watching ri***@gmail.com
             {gmailConnected && (
               <>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e", animation: "ping 1.4s ease-out infinite" }} />

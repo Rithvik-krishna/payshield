@@ -104,8 +104,8 @@ function FraudWorkspace() {
           country: "IN",
           paymentMethod: step.paymentMethod,
           memo: step.memo,
-          userEmail: "amoghrules20@gmail.com",
-          userName: "Amogh",
+          userEmail: "rithvikkrishnadk@gmail.com",
+          userName: "Rithvik",
           behavioralData: step.merchant === "Swiggy" ? { typingCadenceDeviation: 0.1, touchPressure: 0.7, copyPasteRatio: 0.02 } : { typingCadenceDeviation: 0.8, touchPressure: 0.2, copyPasteRatio: 0.7 },
         });
         setSelectedTransaction(result);

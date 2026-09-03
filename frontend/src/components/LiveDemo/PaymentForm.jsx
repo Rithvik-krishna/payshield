@@ -117,8 +117,8 @@ export default function PaymentForm() {
         country: "IN",
         paymentMethod: values.paymentMethod,
         memo: values.memo,
-        userEmail: "amoghrules20@gmail.com",
-        userName: "Amogh",
+        userEmail: "rithvikkrishnadk@gmail.com",
+        userName: "Rithvik",
         behavioralData: values.name === "Normal Payment" ? { typingCadenceDeviation: 0.09, touchPressure: 0.74, copyPasteRatio: 0.03 } : { typingCadenceDeviation: 0.8, touchPressure: 0.21, copyPasteRatio: 0.7 },
       });
       setResult(response);

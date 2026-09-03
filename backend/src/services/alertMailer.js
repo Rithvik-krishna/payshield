@@ -1,5 +1,5 @@
 // FILE: alertMailer.js
-// ROLE: Send real-time HTML fraud alert emails to amoghrules20@gmail.com
+// ROLE: Send real-time HTML fraud alert emails to rithvikkrishnadk@gmail.com
 // INSPIRED BY: JP Morgan Chase real-time client fraud notification
 // PERFORMANCE TARGET: Email dispatched < 500ms, completely non-blocking
 

@@ -67,7 +67,7 @@ export default function FraudScoreGauge({ score = 0, decision = "pending" }) {
         {decision.replace(/_/g, " ").toUpperCase()}
       </div>
       <div style={{ fontSize: 10, color: "#334155", marginTop: 4 }}>
-        {score >= 70 ? "Alert sent to amoghrules20@gmail.com" : "Transaction cleared - no alert"}
+        {score >= 70 ? "Alert sent to rithvikkrishnadk@gmail.com" : "Transaction cleared - no alert"}
       </div>
     </div>
   );
