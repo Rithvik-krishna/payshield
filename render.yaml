@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: payshield-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_DEBUG_ENDPOINTS
+        value: "true"
+      - key: DEMO_USER_EMAIL
+        value: rithvikkrishnadk@gmail.com
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: payshield-ml-engine
+          property: host
+
+  - type: web
+    name: payshield-ml-engine
+    runtime: python
+    rootDir: ml-engine
+    plan: free
+    buildCommand: pip install -r requirements.runtime.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ENABLE_DEBUG_ENDPOINTS
+        value: "true"

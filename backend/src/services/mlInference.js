@@ -9,7 +9,8 @@ const { SpanStatusCode, trace } = require("@opentelemetry/api");
 const telemetry = require("./telemetry");
 const { logger } = require("./logger");
 
-const ML = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const rawMl = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ML = rawMl.startsWith("http") ? rawMl : `http://${rawMl}`;
 const tracer = trace.getTracer("payshield-backend");
 
 const WEIGHTS = { gnn: 0.28, lstm: 0.22, ensemble: 0.20, biometrics: 0.15, aml: 0.10, bec: 0.05 };
