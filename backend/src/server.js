@@ -81,6 +81,7 @@ function broadcastToClients(data) {
 
 module.exports.broadcastToClients = broadcastToClients;
 
+app.use(cors({ origin: true, credentials: true }));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   rateLimit({

@@ -234,7 +234,7 @@ export default function QuickInjectPanel({ onTransactionInjected }) {
                 <span style={{ fontSize: 9, fontWeight: 800, color: p.color }}>{p.risk}</span>
               </div>
               <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>
-                {formatINR(p.amount)} ? {p.method}
+                {formatINR(p.amount)} &bull; {p.method}
               </div>
             </button>
           ))}
