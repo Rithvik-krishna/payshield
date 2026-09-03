@@ -54,8 +54,8 @@ router.post("/simulate", async (req, res) => {
   const stored = Transaction.create({
     txId: `SIM-${Date.now()}`,
     userId: "sim-user",
-    userEmail: process.env.DEMO_USER_EMAIL || "amoghrules20@gmail.com",
-    userName: "Amogh",
+    userEmail: process.env.DEMO_USER_EMAIL || "rithvikkrishnadk@gmail.com",
+    userName: "Rithvik",
     simulatedFraud: true,
     amount: scenario.amount,
     currency: "INR",

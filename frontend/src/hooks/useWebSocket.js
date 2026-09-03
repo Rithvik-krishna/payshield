@@ -1,25 +1,26 @@
 import { useEffect } from "react";
 import useFraudStore from "../store/fraudStore";
 
+const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:3001";
+
 export default function useWebSocket() {
+  const setWsConnected = useFraudStore((state) => state.setWsConnected);
+  const setGmailConnected = useFraudStore((state) => state.setGmailConnected);
   const addTransaction = useFraudStore((state) => state.addTransaction);
   const updateTransaction = useFraudStore((state) => state.updateTransaction);
-  const pushToast = useFraudStore((state) => state.pushToast);
   const addEmailFeedItem = useFraudStore((state) => state.addEmailFeedItem);
   const mergeEmailFeedItem = useFraudStore((state) => state.mergeEmailFeedItem);
   const addSmsFeedItem = useFraudStore((state) => state.addSmsFeedItem);
-  const setGmailConnected = useFraudStore((state) => state.setGmailConnected);
-  const setWsConnected = useFraudStore((state) => state.setWsConnected);
+  const pushToast = useFraudStore((state) => state.pushToast);
 
   useEffect(() => {
-    let socket = null;
-    let reconnectTimeout = null;
+    let socket;
+    let reconnectTimeout;
     let isDisposed = false;
 
     function connect() {
-      if (isDisposed) return;
       try {
-        socket = new WebSocket(import.meta.env.VITE_WS_URL || "ws://localhost:3001");
+        socket = new WebSocket(wsUrl);
         socket.onopen = () => {
           if (!isDisposed) setWsConnected(true);
         };

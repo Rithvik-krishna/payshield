@@ -17,7 +17,9 @@ let testIndex = 0;
 const tracer = trace.getTracer("payshield-backend");
 
 router.post("/incoming", async (req, res) => {
-  const { from, body, date } = req.body;
+  const from = req.body.from || req.body.sender || req.body.senderNumber || req.body.address || "HDFCBK";
+  const body = req.body.body || req.body.message || req.body.text || req.body.content || "";
+  const date = req.body.date || req.body.timestamp || req.body.time || new Date().toISOString();
   if (!body) return res.json({ status: "ignored", reason: "empty body" });
   const parseSpan = tracer.startSpan("sms_parse", {
     attributes: { sender: from || "unknown" },
@@ -83,10 +85,15 @@ router.post("/test", async (req, res) => {
     "INR 15000.00 debited from A/c XX7788 on 23-03-26 to VPA newpayee4821@okhdfcbank. UPI Ref 712345678901. URGENT vendor account update.",
     "INR 8500.00 debited from A/c XX9999 on 23-03-26 to VPA shellmerchants@ibl. UPI Ref 812345678901.",
   ];
-  const sms = req.body.sms || testSMSOptions[testIndex % testSMSOptions.length];
+  const sms = req.body.sms || req.body.body || testSMSOptions[testIndex % testSMSOptions.length];
+  const from = req.body.from || req.body.sender || "HDFCBK";
   testIndex += 1;
-  const result = await axios.post(`http://localhost:${process.env.PORT || 3001}/api/sms/incoming`, { from: "HDFCBK", body: sms, date: new Date().toISOString() });
-  res.json(result.data);
+  const result = await axios.post(`http://localhost:${process.env.PORT || 3001}/api/sms/incoming`, {
+    from,
+    body: sms,
+    date: new Date().toISOString(),
+  });
+  res.json({ ...result.data, raw: sms, from });
 });
 
 module.exports = router;

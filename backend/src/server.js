@@ -81,9 +81,21 @@ function broadcastToClients(data) {
 
 module.exports.broadcastToClients = broadcastToClients;
 
+app.use(cors({ origin: true, credentials: true }));
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: "*" }));
-app.use(rateLimit({ windowMs: 60_000, max: 1000, standardHeaders: true }));
+app.use(
+  rateLimit({
+    windowMs: 60_000,
+    max: process.env.NODE_ENV === "production" ? 1000 : 100_000,
+    skip: (req) =>
+      req.path === "/health" ||
+      req.path.startsWith("/api/system") ||
+      req.ip === "127.0.0.1" ||
+      req.ip === "::1" ||
+      req.ip === "::ffff:127.0.0.1",
+    standardHeaders: true,
+  })
+);
 app.use("/api/webhooks", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10mb" }));
 
