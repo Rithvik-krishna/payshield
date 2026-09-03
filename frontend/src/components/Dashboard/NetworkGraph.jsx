@@ -1,19 +1,20 @@
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
+import { Share2, AlertTriangle, Shield, CheckCircle2, Radio } from "lucide-react";
 
 const NODE_TYPES = {
-  account: { color: "#3b82f6", label: "NODE_ACC" },
-  merchant: { color: "#8b5cf6", label: "NODE_MERCH" },
-  device: { color: "#06b6d4", label: "NODE_DEV" },
-  ip: { color: "#10b981", label: "NODE_IP" },
+  account: { color: "#38bdf8", label: "Account" },
+  merchant: { color: "#a855f7", label: "Merchant" },
+  device: { color: "#06b6d4", label: "Device" },
+  ip: { color: "#10b981", label: "IP Address" },
 };
 
 const BASE_RING_NODES = [
-  { id: "acc-mule-01", type: "account", fraudScore: 94, x: 120, y: 140, connectedToFraud: true, label: "ACC_MULE_01" },
-  { id: "acc-mule-02", type: "account", fraudScore: 91, x: 200, y: 80, connectedToFraud: true, label: "ACC_MULE_02" },
-  { id: "acc-mule-03", type: "account", fraudScore: 88, x: 280, y: 160, connectedToFraud: true, label: "ACC_MULE_03" },
-  { id: "dev-stolen-01", type: "device", fraudScore: 94, x: 200, y: 200, connectedToFraud: true, label: "DEV_STOLEN_01" },
-  { id: "merch-shell-01", type: "merchant", fraudScore: 85, x: 360, y: 120, connectedToFraud: true, label: "MERCH_SHELL_01" },
-  { id: "ip-foreign-01", type: "ip", fraudScore: 0, x: 90, y: 240, connectedToFraud: true, label: "IP_FOREIGN_01" },
+  { id: "acc-mule-01", type: "account", fraudScore: 94, x: 140, y: 130, connectedToFraud: true, label: "ACC_MULE_01" },
+  { id: "acc-mule-02", type: "account", fraudScore: 91, x: 210, y: 80, connectedToFraud: true, label: "ACC_MULE_02" },
+  { id: "acc-mule-03", type: "account", fraudScore: 88, x: 280, y: 140, connectedToFraud: true, label: "ACC_MULE_03" },
+  { id: "dev-stolen-01", type: "device", fraudScore: 94, x: 210, y: 190, connectedToFraud: true, label: "DEV_STOLEN_01" },
+  { id: "merch-shell-01", type: "merchant", fraudScore: 85, x: 350, y: 110, connectedToFraud: true, label: "MERCH_SHELL_01" },
+  { id: "ip-foreign-01", type: "ip", fraudScore: 0, x: 100, y: 210, connectedToFraud: true, label: "IP_FOREIGN_01" },
 ];
 
 const BASE_RING_EDGES = [
@@ -26,22 +27,15 @@ const BASE_RING_EDGES = [
   { from: "ip-foreign-01", to: "acc-mule-01", score: 94, txId: "ring-7" },
 ];
 
-function shortLabel(value, max = 15) {
+function shortLabel(value, max = 14) {
   const text = String(value || "unknown");
   return text.length > max ? `${text.slice(0, max)}..` : text;
-}
-
-function shouldRenderLabel(node, totalNodes, isSelected) {
-  if (isSelected) return true;
-  if ((node.fraudScore || 0) >= 70) return true;
-  if (node.connectedToFraud) return true;
-  return totalNodes <= 12;
 }
 
 function buildGraph(transactions) {
   const nodes = new Map();
   const edges = [];
-  const txList = transactions.slice(0, 40);
+  const txList = transactions.slice(0, 30);
 
   txList.forEach((tx, i) => {
     const uid = tx.userId || `acc-${(tx.txId || `t-${i}`).slice(0, 8)}`;
@@ -76,8 +70,8 @@ function buildGraph(transactions) {
   nodeArr.forEach((node, i) => {
     if (typeof node.x !== "number" || typeof node.y !== "number") {
       const angle = (i / Math.max(nodeArr.length, 1)) * Math.PI * 2;
-      node.x = 240 + 140 * Math.cos(angle);
-      node.y = 150 + 95 * Math.sin(angle);
+      node.x = 230 + 130 * Math.cos(angle);
+      node.y = 145 + 85 * Math.sin(angle);
     }
   });
 
@@ -91,39 +85,75 @@ export default function NetworkGraph({ transactions = [], selectedTransaction })
   const { nodes, edges } = useMemo(() => buildGraph(transactions), [transactions, focusTxId]);
 
   const filteredNodes = useMemo(() => {
-    if (filter === "Fraud") return nodes.filter((n) => (n.fraudScore || 0) >= 70 || n.connectedToFraud);
+    if (filter === "Anomaly") return nodes.filter((n) => (n.fraudScore || 0) >= 70 || n.connectedToFraud);
     return nodes;
   }, [nodes, filter]);
+
   const filteredIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
 
   const getNodeColor = useCallback((node) => {
     if ((node.fraudScore || 0) >= 70) return "#ef4444";
     if (node.connectedToFraud) return "#f59e0b";
-    return NODE_TYPES[node.type]?.color || "#d4d4d4";
+    return NODE_TYPES[node.type]?.color || "#38bdf8";
   }, []);
 
   const selectedNode = selected ? nodes.find((n) => n.id === selected) : null;
-  const connectedTxs = selectedNode ? transactions.filter((tx) => tx.userId === selectedNode.id || tx.merchant === selectedNode.id || tx.deviceId === selectedNode.id).slice(0, 4) : [];
   const hasFraudNodes = nodes.some((n) => (n.fraudScore || 0) >= 70);
-  const activeFocus = selectedTransaction || transactions[0] || null;
 
   return (
-    <div className="ps-card p-8 flex flex-col gap-8 flex-1">
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold" style={{color:'var(--color-ps-muted)'}}>Graph Observability</span>
-          <div className="text-xs" style={{color:'var(--color-ps-muted)'}}>Interactive Network Topology</div>
+    <div
+      style={{
+        background: "linear-gradient(135deg, #0d1527 0%, #0a0f1d 100%)",
+        borderRadius: 16,
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)",
+      }}
+    >
+      {/* Header & Controls */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
+              Graph Topology Observability
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: hasFraudNodes ? "#ef4444" : "#10b981",
+                background: hasFraudNodes ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                border: `1px solid ${hasFraudNodes ? "rgba(239, 68, 68, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
+                borderRadius: 999,
+                padding: "2px 8px",
+              }}
+            >
+              {hasFraudNodes ? "SUSPICIOUS CLUSTER" : "CLEARED CLUSTER"}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+            Interactive entity adjacency &amp; mule account fraud-ring detection
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div style={{ display: "flex", gap: 6 }}>
           {["All", "Anomaly"].map((f) => (
-            <button 
-              key={f} 
-              onClick={() => setFilter(f === "Anomaly" ? "Fraud" : "All")} 
-              className="px-6 py-2 rounded-full text-xs font-semibold transition-all duration-300"
-              style={filter === (f === "Anomaly" ? "Fraud" : "All")
-                ? {background:'var(--color-ps-text)',color:'var(--color-ps-accent)'}
-                : {background:'var(--color-ps-surface)',color:'var(--color-ps-muted)'}
-              }
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                background: filter === f ? "#38bdf8" : "rgba(255, 255, 255, 0.04)",
+                color: filter === f ? "#030712" : "#94a3b8",
+                border: `1px solid ${filter === f ? "#38bdf8" : "rgba(255, 255, 255, 0.08)"}`,
+                borderRadius: 8,
+                padding: "4px 10px",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
             >
               {f}
             </button>
@@ -131,130 +161,132 @@ export default function NetworkGraph({ transactions = [], selectedTransaction })
         </div>
       </div>
 
-      <div
-        className="border rounded-2xl px-4 py-3 flex items-center justify-between gap-4"
-        style={{ background: "rgba(255,255,255,0.03)", borderColor: "var(--color-ps-outline)" }}
-      >
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-black tracking-[0.12em] uppercase" style={{ color: "var(--color-ps-muted)" }}>
-            What This Graph Means
-          </span>
-          <span className="text-[11px]" style={{ color: "var(--color-ps-text)" }}>
-            Blue is the account hub. Purple merchants, green IPs, cyan devices. Red/orange nodes mark the suspicious cluster around the currently risky payment.
-          </span>
-        </div>
-        {activeFocus && (
-          <div className="text-right">
-            <div className="text-[10px] font-black tracking-[0.1em] uppercase" style={{ color: "var(--color-ps-muted)" }}>Current Focus</div>
-            <div className="text-[12px] font-bold" style={{ color: "var(--color-ps-text)" }}>
-              {activeFocus.merchant || activeFocus.merchantName || "Unknown merchant"} | Score {activeFocus.fraudScore ?? 0}
+      {/* Legend & Entity counts */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)", padding: "8px 12px", borderRadius: 8, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {Object.entries(NODE_TYPES).map(([k, meta]) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta.color }} />
+              {meta.label}
             </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#ef4444" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
+            Flagged Anomaly
           </div>
-        )}
+        </div>
+
+        <div style={{ fontSize: 11, color: "#64748b" }}>
+          {nodes.length} Entities ? {edges.length} Connections
+        </div>
       </div>
 
-      <div className="relative rounded-[24px] overflow-hidden border min-h-[400px]" style={{background:'var(--color-ps-surface)',borderColor:'var(--color-ps-outline)'}}>
-        <svg viewBox="0 0 480 300" className="w-full h-full">
-          {hasFraudNodes && (
-            <text x="24" y="32" className="fill-red-500 font-black text-[10px] tracking-[0.2em] uppercase">
-              HIGH_RISK_CLUSTER_DETECTED
-            </text>
-          )}
+      {/* SVG Canvas */}
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 12,
+          overflow: "hidden",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+          background: "#080d19",
+          minHeight: 280,
+        }}
+      >
+        <svg viewBox="0 0 460 280" style={{ width: "100%", height: "100%", display: "block" }}>
+          {/* Edges */}
+          {edges
+            .filter((e) => filteredIds.has(e.from) && filteredIds.has(e.to))
+            .map((edge, i) => {
+              const from = nodes.find((n) => n.id === edge.from);
+              const to = nodes.find((n) => n.id === edge.to);
+              if (!from || !to) return null;
+              const isFraud = (edge.score || 0) >= 70;
+              return (
+                <line
+                  key={`${edge.txId}-${i}`}
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  stroke={isFraud ? "#ef4444" : "rgba(255,255,255,0.12)"}
+                  strokeWidth={isFraud ? 1.8 : 0.8}
+                  strokeOpacity={isFraud ? 0.9 : 0.4}
+                  strokeDasharray={isFraud ? "none" : "2 2"}
+                />
+              );
+            })}
 
-          {edges.filter((e) => filteredIds.has(e.from) && filteredIds.has(e.to)).map((edge, i) => {
-            const from = nodes.find((n) => n.id === edge.from);
-            const to = nodes.find((n) => n.id === edge.to);
-            if (!from || !to) return null;
-            const isFraud = (edge.score || 0) >= 70;
-            return (
-              <line
-                key={`${edge.txId}-${i}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={isFraud ? "#ef4444" : "var(--color-ps-text)"}
-                strokeWidth={isFraud ? 2 : 0.4}
-                strokeOpacity={isFraud ? 1 : 0.15}
-                strokeDasharray={isFraud ? "none" : "2 2"}
-              />
-            );
-          })}
-
+          {/* Nodes */}
           {filteredNodes.map((node) => {
             const color = getNodeColor(node);
             const isFraud = (node.fraudScore || 0) >= 70;
             const isSelected = selected === node.id;
-            const r = isFraud ? 12 : 8;
-            const showLabel = shouldRenderLabel(node, filteredNodes.length, isSelected);
+            const r = isFraud ? 11 : 7;
             return (
-              <g key={node.id} className="cursor-pointer" onClick={() => setSelected(selected === node.id ? null : node.id)}>
+              <g
+                key={node.id}
+                onClick={() => setSelected(selected === node.id ? null : node.id)}
+                style={{ cursor: "pointer" }}
+              >
                 <circle
                   cx={node.x}
                   cy={node.y}
                   r={isSelected ? r + 3 : r}
                   fill={color}
-                  stroke={isSelected ? "var(--color-ps-text)" : "none"}
+                  stroke={isSelected ? "#f8fafc" : "none"}
                   strokeWidth={2}
-                  className="transition-all duration-300"
-                  style={{ filter: isFraud ? "drop-shadow(0 0 8px rgba(239,68,68,0.4))" : "none" }}
+                  style={{ filter: isFraud ? "drop-shadow(0 0 8px rgba(239,68,68,0.5))" : "none" }}
                 />
-                {showLabel && (
-                  <text
-                    x={node.x}
-                    y={node.y + r + 12}
-                    textAnchor="middle"
-                    className={`font-bold tracking-tight uppercase ${isFraud ? "fill-red-500" : "fill-neutral-400"}`}
-                    style={{ fontSize: isSelected ? 10 : 7, opacity: isSelected ? 1 : 0.82 }}
-                  >
-                    {shortLabel(node.label, isSelected ? 16 : 10)}
-                  </text>
-                )}
+                <text
+                  x={node.x}
+                  y={node.y + r + 11}
+                  textAnchor="middle"
+                  fill={isFraud ? "#ef4444" : "#94a3b8"}
+                  style={{ fontSize: isSelected ? 10 : 8, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  {shortLabel(node.label, isSelected ? 16 : 10)}
+                </text>
               </g>
             );
           })}
         </svg>
       </div>
 
+      {/* Selected Node Details Drawer */}
       {selectedNode && (
-        <div className="border rounded-2xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2"
-             style={{background:'var(--color-ps-card)',borderColor:'var(--color-ps-outline)'}}>
-          <div className="flex justify-between items-center">
-            <span className="text-[11px] font-black tracking-tight" style={{color:'var(--color-ps-text)'}}>{selectedNode.id}</span>
-            <span className="text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1 rounded-full border"
-                  style={{background:'var(--color-ps-surface)',color:'var(--color-ps-muted)',borderColor:'var(--color-ps-outline)'}}>
-              {selectedNode.type}
-            </span>
+        <div
+          style={{
+            background: "rgba(255, 255, 255, 0.03)",
+            border: "1px solid rgba(255, 255, 255, 0.07)",
+            borderRadius: 10,
+            padding: "12px 14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Selected Entity ({selectedNode.type})
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", fontFamily: "'JetBrains Mono', monospace" }}>
+              {selectedNode.id}
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            {connectedTxs.map((tx) => (
-              <div key={tx.txId} className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0"
-                   style={{borderColor:'var(--color-ps-outline)'}}>
-                <span className="text-[10px] font-medium tabular-nums" style={{color:'var(--color-ps-muted)'}}>
-                  ID: {String(tx.txId || "").slice(0, 12)}...
-                </span>
-                <span className={`text-[10px] font-black tabular-nums ${tx.fraudScore >= 70 ? 'text-red-500' : ''}`}
-                      style={tx.fraudScore < 70 ? {color:'var(--color-ps-text)'} : {}}>
-                  {tx.fraudScore}
-                </span>
-              </div>
-            ))}
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 10, color: "#64748b" }}>Risk Assessment</div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: (selectedNode.fraudScore || 0) >= 70 ? "#ef4444" : "#10b981",
+              }}
+            >
+              {(selectedNode.fraudScore || 0) >= 70 ? "HIGH RISK / QUARANTINE" : "NORMAL TRUST PROFILE"}
+            </div>
           </div>
         </div>
       )}
-
-      <div className="flex gap-8 flex-wrap border-t pt-8" style={{borderColor:'var(--color-ps-outline)'}}>
-        {Object.entries(NODE_TYPES).map(([type, { color, label }]) => (
-          <div key={type} className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full border border-black/10 shadow-sm" style={{ background: color }} />
-            <span className="text-[9px] font-black tracking-[0.1em] uppercase" style={{color:'var(--color-ps-muted)'}}>{label}</span>
-          </div>
-        ))}
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg shadow-red-500/20" />
-          <span className="text-[9px] font-black tracking-[0.1em] uppercase" style={{color:'var(--color-ps-text)'}}>Anomaly node</span>
-        </div>
-      </div>
     </div>
   );
 }

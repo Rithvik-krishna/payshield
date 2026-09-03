@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Calendar, TrendingUp, Info } from "lucide-react";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOURS = Array.from({ length: 24 }, (_, i) => (i === 0 ? "12a" : i < 12 ? `${i}a` : i === 12 ? "12p" : `${i - 12}p`));
@@ -53,90 +54,123 @@ export default function RiskHeatmap({ transactions = [] }) {
     );
   }, [inputTx, mode]);
 
+  const cellColor = (val) => {
+    if (val === 0) return "rgba(255, 255, 255, 0.03)";
+    if (val < 0.25) return "rgba(16, 185, 129, 0.3)";
+    if (val < 0.5) return "rgba(56, 189, 248, 0.4)";
+    if (val < 0.75) return "rgba(245, 158, 11, 0.5)";
+    return "rgba(239, 68, 68, 0.75)";
+  };
+
   return (
-    <div style={{ background: "linear-gradient(135deg, #0d1117 0%, #0a0f1a 100%)", borderRadius: 20, padding: 20, border: "1px solid rgba(255,255,255,0.06)", fontFamily: "'JetBrains Mono', monospace", display: "flex", flexDirection: "column", gap: 14, position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 11, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase" }}>Risk Heatmap</span>
+    <div
+      style={{
+        background: "linear-gradient(135deg, #0d1527 0%, #0a0f1d 100%)",
+        borderRadius: 16,
+        padding: "20px 22px",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
+            Temporal Risk Heatmap
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+            24-hour hour-by-day fraud velocity distribution &amp; abnormal surge analysis
+          </div>
+        </div>
+
         <div style={{ display: "flex", gap: 6 }}>
-          {["rate", "volume"].map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{
-                background: mode === m ? "#38bdf8" : "transparent",
-                border: `1px solid ${mode === m ? "#38bdf8" : "rgba(255,255,255,0.08)"}`,
-                color: mode === m ? "#020c14" : "#64748b",
-                borderRadius: 999,
-                padding: "4px 10px",
-                fontSize: 10,
-                cursor: "pointer",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              {m}
-            </button>
+          <button
+            onClick={() => setMode("rate")}
+            style={{
+              background: mode === "rate" ? "#38bdf8" : "rgba(255,255,255,0.04)",
+              color: mode === "rate" ? "#030712" : "#94a3b8",
+              border: `1px solid ${mode === "rate" ? "#38bdf8" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 8,
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Fraud Rate
+          </button>
+          <button
+            onClick={() => setMode("volume")}
+            style={{
+              background: mode === "volume" ? "#38bdf8" : "rgba(255,255,255,0.04)",
+              color: mode === "volume" ? "#030712" : "#94a3b8",
+              border: `1px solid ${mode === "volume" ? "#38bdf8" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 8,
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Tx Volume
+          </button>
+        </div>
+      </div>
+
+      {/* Heatmap Grid */}
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 620 }}>
+          {/* Hour labels */}
+          <div style={{ display: "grid", gridTemplateColumns: "36px repeat(24, 1fr)", gap: 3, marginBottom: 4 }}>
+            <div />
+            {HOURS.map((h, i) => (
+              <div key={h} style={{ fontSize: 9, color: i % 3 === 0 ? "#94a3b8" : "#475569", textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }}>
+                {i % 3 === 0 ? h : ""}
+              </div>
+            ))}
+          </div>
+
+          {/* Grid rows */}
+          {grid.map((row, dayIdx) => (
+            <div key={DAYS[dayIdx]} style={{ display: "grid", gridTemplateColumns: "36px repeat(24, 1fr)", gap: 3, marginBottom: 3, alignItems: "center" }}>
+              <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>{DAYS[dayIdx]}</span>
+              {row.map((cell, hrIdx) => (
+                <div
+                  key={hrIdx}
+                  onMouseEnter={() => setActiveTooltip({ day: DAYS[dayIdx], hour: HOURS[hrIdx], ...cell })}
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  style={{
+                    height: 18,
+                    borderRadius: 3,
+                    background: cellColor(cell.value),
+                    border: "1px solid rgba(255, 255, 255, 0.04)",
+                    cursor: "pointer",
+                    transition: "transform 0.1s ease",
+                  }}
+                />
+              ))}
+            </div>
           ))}
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "28px repeat(24, 1fr)", gap: 3, alignItems: "center" }}>
-        <div />
-        {HOURS.map((h, i) => (i % 3 === 0 ? <div key={h} style={{ fontSize: 8, color: "#475569", textAlign: "center", letterSpacing: "0.05em" }}>{h}</div> : <div key={h} />))}
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {grid.map((row, day) => (
-          <div key={day} style={{ display: "grid", gridTemplateColumns: "28px repeat(24, 1fr)", gap: 3, alignItems: "center" }}>
-            <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.05em", textAlign: "right", paddingRight: 4 }}>{DAYS[day]}</div>
-            {row.map((cell, hour) => (
-              <div
-                key={hour}
-                onMouseEnter={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setActiveTooltip({ day, hour, ...cell, left: rect.left, top: rect.top });
-                }}
-                onMouseLeave={() => setActiveTooltip(null)}
-                style={{
-                  height: 16,
-                  borderRadius: 3,
-                  background: cell.value > 0 ? `rgba(239, 68, 68, ${0.08 + cell.value * 0.82})` : "rgba(255,255,255,0.03)",
-                  border: activeTooltip?.day === day && activeTooltip?.hour === hour ? "1px solid rgba(56,189,248,0.6)" : "1px solid transparent",
-                  cursor: "crosshair",
-                  transition: "background 0.15s",
-                }}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-
-      <AnimatePresence>
-        {activeTooltip && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            style={{ position: "fixed", left: activeTooltip.left - 40, top: activeTooltip.top - 65, background: "#101827", color: "#e2e8f0", borderRadius: 8, padding: "8px 14px", fontSize: 11, pointerEvents: "none", zIndex: 100, whiteSpace: "nowrap", border: "1px solid rgba(56,189,248,0.2)", boxShadow: "0 10px 25px rgba(0,0,0,0.3)" }}
-          >
-            <div style={{ display: "flex", gap: 12 }}>
-              <span style={{ fontWeight: 800, color: "#38bdf8" }}>{DAYS[activeTooltip.day]} {HOURS[activeTooltip.hour]}</span>
-              <span>Tx: {activeTooltip.total}</span>
-              <span>Fraud: {activeTooltip.fraudCount}</span>
-              <span>Rate: {(activeTooltip.rate * 100).toFixed(0)}%</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.08em" }}>LOW</span>
-        <div style={{ display: "flex", gap: 2, flex: 1 }}>
-          {[0.08, 0.22, 0.38, 0.54, 0.7, 0.86, 0.9].map((op, i) => <div key={i} style={{ flex: 1, height: 6, borderRadius: 2, background: `rgba(239,68,68,${op})` }} />)}
+      {/* Bottom Insights */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8" }}>
+          <TrendingUp size={14} color="#f59e0b" />
+          <span>Analytic Insight: <strong>High velocity bursts occur on weekend evenings (10pm - 2am)</strong></span>
         </div>
-        <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.08em" }}>HIGH</span>
+
+        {activeTooltip ? (
+          <div style={{ fontSize: 11, color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>
+            {activeTooltip.day} {activeTooltip.hour}: {activeTooltip.fraudCount} flagged / {activeTooltip.total} txs ({Math.round(activeTooltip.rate * 100)}%)
+          </div>
+        ) : (
+          <div style={{ fontSize: 10, color: "#64748b" }}>Hover over any cell to view window telemetry</div>
+        )}
       </div>
-      <div style={{ fontSize: 10, color: "#64748b" }}>Forensic insight: peak risk density frequently manifests Fri/Sat 22:00-02:00</div>
     </div>
   );
 }

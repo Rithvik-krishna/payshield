@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Navbar from "./components/Shared/Navbar";
+import React, { useEffect, useMemo, useState } from "react";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import AppShell from "./components/Layout/AppShell";
+import InvestigationDrawer from "./components/Common/InvestigationDrawer";
 import AlertNotificationToast from "./components/Shared/AlertNotificationToast";
 import MetricsBar from "./components/Dashboard/MetricsBar";
 import FraudScoreGauge from "./components/Dashboard/FraudScoreGauge";
@@ -19,7 +20,14 @@ import ObservabilityDashboard from "./components/ObservabilityDashboard";
 import useWebSocket from "./hooks/useWebSocket";
 import useFraudScore from "./hooks/useFraudScore";
 import useFraudStore from "./store/fraudStore";
-import { fetchAlerts, fetchCompliance, fetchFraudStats, fetchHistory, fetchModelVersion, submitTransaction } from "./services/api";
+import {
+  fetchAlerts,
+  fetchCompliance,
+  fetchFraudStats,
+  fetchHistory,
+  fetchModelVersion,
+  submitTransaction,
+} from "./services/api";
 
 const reviewFlowSteps = [
   { amount: 2000, merchant: "Swiggy", paymentMethod: "UPI", memo: "Dinner order" },
@@ -28,7 +36,21 @@ const reviewFlowSteps = [
   { amount: 8500, merchant: "Shell Merchants Pvt Ltd", paymentMethod: "UPI", memo: "SIM swap drain transfer" },
 ];
 
-function FraudWorkspace() {
+function MainAppShell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Active navigation tab
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.pathname === "/observability") return "observability";
+    if (location.pathname === "/transactions") return "transactions";
+    if (location.pathname === "/investigation") return "investigation";
+    if (location.pathname === "/reports") return "reports";
+    return "overview";
+  });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const { score, riskLevel, decision } = useFraudScore();
   const transactions = useFraudStore((state) => state.transactions);
   const metrics = useFraudStore((state) => state.metrics);
@@ -41,9 +63,24 @@ function FraudWorkspace() {
   const setTransactions = useFraudStore((state) => state.setTransactions);
   const reviewFlowRunning = useFraudStore((state) => state.demoRunning);
   const setReviewFlowRunning = useFraudStore((state) => state.setDemoRunning);
-  const gmailConnected = useFraudStore((state) => state.gmailConnected);
-  const wsConnected = useFraudStore((state) => state.wsConnected);
 
+  // Sync tab with URL
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === "observability") navigate("/observability");
+    else if (tabId === "overview") navigate("/");
+    else navigate(`/${tabId}`);
+  };
+
+  useEffect(() => {
+    if (location.pathname === "/observability") setActiveTab("observability");
+    else if (location.pathname === "/transactions") setActiveTab("transactions");
+    else if (location.pathname === "/investigation") setActiveTab("investigation");
+    else if (location.pathname === "/reports") setActiveTab("reports");
+    else if (location.pathname === "/") setActiveTab("overview");
+  }, [location.pathname]);
+
+  // Initial data loading
   useEffect(() => {
     Promise.allSettled([fetchAlerts(), fetchFraudStats(), fetchCompliance(), fetchHistory(), fetchModelVersion()])
       .then(([alertRes, statsRes, complianceRes, historyRes, modelRes]) => {
@@ -61,6 +98,7 @@ function FraudWorkspace() {
       });
   }, [selectedTransaction, setAlerts, setCompliance, setMetrics, setSelectedTransaction, setTransactions]);
 
+  // Periodic metrics
   useEffect(() => {
     const timer = setInterval(() => {
       const recentTen = transactions.filter((item) => Date.now() - new Date(item.timestamp).getTime() <= 10000);
@@ -92,6 +130,11 @@ function FraudWorkspace() {
 
   const latestAlert = useMemo(() => activeAlerts[0] || null, [activeAlerts]);
 
+  const handleSelectTransaction = (tx) => {
+    setSelectedTransaction(tx);
+    setDrawerOpen(true);
+  };
+
   const startReviewFlow = async () => {
     setReviewFlowRunning(true);
     try {
@@ -116,67 +159,118 @@ function FraudWorkspace() {
     }
   };
 
-  return (
-    <div style={{ background: "#0a0d14", minHeight: "100vh", fontFamily: "'JetBrains Mono', monospace", overflow: "hidden" }}>
-      <Navbar onStartReviewFlow={startReviewFlow} reviewFlowRunning={reviewFlowRunning} wsConnected={wsConnected} gmailConnected={gmailConnected} statusText={`${transactions.length.toLocaleString()} transactions screened`} actionLabel="Launch Review Flow" />
-      <div style={{ padding: 16, display: "grid", gap: 12, overflow: "hidden" }}>
-        <MetricsBar metrics={metrics} />
-
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: 12 }}>
-          <div style={{ display: "grid", gap: 12, gridTemplateRows: "1fr 1fr" }}>
-            <FraudScoreGauge score={score} decision={decision} riskLevel={riskLevel} transaction={selectedTransaction} />
-            <AlertPanel alerts={activeAlerts} />
-          </div>
-          <div style={{ maxHeight: 420, overflow: "hidden" }}>
-            <TransactionFeed transactions={transactions} onSelect={setSelectedTransaction} />
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <PaymentForm />
-          <LiveEmailMonitor />
-          <LiveSMSFeed />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 12 }}>
-          <NetworkGraph transactions={transactions} selectedTransaction={selectedTransaction} />
-          <ExplainabilityPanel transaction={selectedTransaction} />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <RiskHeatmap transactions={transactions} />
-          <AMLSuspiciousFlow transaction={selectedTransaction} />
-        </div>
-
-        <div style={{ display: "none" }}>
-          <SARReport alert={latestAlert} />
-          <ComplianceDashboard compliance={compliance} />
-        </div>
-      </div>
-      <AlertNotificationToast />
-    </div>
-  );
-}
-
-function ObservabilityWorkspace() {
-  const gmailConnected = useFraudStore((state) => state.gmailConnected);
-  const wsConnected = useFraudStore((state) => state.wsConnected);
   const runObservabilityDemo = () => {
     window.dispatchEvent(new CustomEvent("payshield:run-demo", { detail: { failureType: "ml_engine_latency" } }));
   };
 
   return (
-    <div style={{ background: "#0a0d14", minHeight: "100vh", fontFamily: "'JetBrains Mono', monospace" }}>
-      <Navbar
-        onStartReviewFlow={runObservabilityDemo}
-        reviewFlowRunning={false}
-        wsConnected={wsConnected}
-        gmailConnected={gmailConnected}
-        statusText="6 services monitored"
-        actionLabel="Run RCA Demo"
+    <AppShell
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      onLaunchReviewFlow={startReviewFlow}
+      onRunRcaDemo={runObservabilityDemo}
+    >
+      {/* Tab: Overview */}
+      {activeTab === "overview" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <MetricsBar metrics={metrics} />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <FraudScoreGauge score={score} decision={decision} riskLevel={riskLevel} />
+              <AlertPanel alerts={activeAlerts} />
+            </div>
+            <div>
+              <TransactionFeed
+                transactions={transactions}
+                onSelect={handleSelectTransaction}
+                selectedTxId={selectedTransaction?.txId}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <ExplainabilityPanel transaction={selectedTransaction} />
+            <NetworkGraph transactions={transactions} selectedTransaction={selectedTransaction} />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Operations Workspace */}
+      {activeTab === "operations" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 16 }}>
+            <PaymentForm onTransactionSubmitted={handleSelectTransaction} />
+            <LiveEmailMonitor />
+            <LiveSMSFeed />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <RiskHeatmap transactions={transactions} />
+            <AMLSuspiciousFlow transaction={selectedTransaction} />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Full Transactions Table */}
+      {activeTab === "transactions" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <MetricsBar metrics={metrics} />
+          <TransactionFeed
+            transactions={transactions}
+            onSelect={handleSelectTransaction}
+            selectedTxId={selectedTransaction?.txId}
+          />
+        </div>
+      )}
+
+      {/* Tab: Alerts & Quarantined */}
+      {activeTab === "alerts" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <AlertPanel alerts={activeAlerts} />
+            <AMLSuspiciousFlow transaction={selectedTransaction} />
+          </div>
+          {latestAlert && <SARReport alert={latestAlert} />}
+        </div>
+      )}
+
+      {/* Tab: Deep Investigation */}
+      {activeTab === "investigation" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 16 }}>
+            <FraudScoreGauge score={score} decision={decision} riskLevel={riskLevel} />
+            <ExplainabilityPanel transaction={selectedTransaction} />
+          </div>
+          <NetworkGraph transactions={transactions} selectedTransaction={selectedTransaction} />
+        </div>
+      )}
+
+      {/* Tab: Observability Brain */}
+      {activeTab === "observability" && (
+        <ObservabilityDashboard />
+      )}
+
+      {/* Tab: Reports & Compliance */}
+      {activeTab === "reports" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <ComplianceDashboard compliance={compliance} />
+          {latestAlert && <SARReport alert={latestAlert} />}
+        </div>
+      )}
+
+      {/* Slide-out Investigation Drawer */}
+      <InvestigationDrawer
+        transaction={selectedTransaction}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onAction={(actionType, tx) => {
+          console.log(`Action ${actionType} on transaction`, tx.txId);
+        }}
       />
-      <ObservabilityDashboard />
-    </div>
+
+      <AlertNotificationToast />
+    </AppShell>
   );
 }
 
@@ -185,8 +279,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<FraudWorkspace />} />
-        <Route path="/observability" element={<ObservabilityWorkspace />} />
+        <Route path="*" element={<MainAppShell />} />
       </Routes>
     </BrowserRouter>
   );
