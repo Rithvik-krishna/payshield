@@ -2,8 +2,10 @@
   "name": "payshield-ai",
   "version": "1.0.0",
   "private": true,
-  "description": "PayShield AI — Autonomous Fraud Intelligence",
+  "description": "PayShield AI ? Autonomous Fraud Intelligence",
   "scripts": {
+    "start": "cd backend && npm install && node src/server.js",
+    "build": "cd backend && npm install",
     "start:backend": "cd backend && npm install && npm run dev",
     "start:ml": "cd ml-engine && pip install -r requirements.txt && python main.py",
     "start:frontend": "cd frontend && npm install && npm run dev",
