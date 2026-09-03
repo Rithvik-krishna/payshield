@@ -9,6 +9,7 @@ const Transaction = require("../models/Transaction");
 const mlInference = require("../services/mlInference");
 const blockchainLogger = require("../services/blockchainLogger");
 const alertMailer = require("../services/alertMailer");
+const awsAuditStore = require("../services/awsAuditStore");
 
 const router = express.Router();
 
@@ -69,6 +70,8 @@ router.post("/simulate", async (req, res) => {
   });
   const result = await mlInference.scoreTransaction(stored);
   const blockchainResult = await blockchainLogger.registerAndLog(stored, result);
+  awsAuditStore.archiveFraudEvent({ ...result, txId: stored.txId })
+    .catch((error) => console.error("s3_audit_archive_failed", stored.txId, error.message));
   const alert = FraudAlert.create({
     txId: stored.txId,
     severity: result.fraudScore >= 90 ? "CRITICAL" : "HIGH",
@@ -95,7 +98,7 @@ router.post("/simulate", async (req, res) => {
     topReasons: (result.explanation?.topFeatures || []).slice(0, 3).map((item) => item.humanReadable),
     blockchainTxHash: blockchainResult.blockchainTxHash || "pending",
     disputeToken: alertMailer.generateDisputeToken(stored.txId, stored.userId),
-  }).catch(() => {});
+  }).catch(() => { });
   res.json({ pattern, transaction: stored, result, alert, blockchainResult });
 });
 

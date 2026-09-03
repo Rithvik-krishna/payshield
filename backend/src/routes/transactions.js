@@ -20,6 +20,7 @@ const { broadcastToClients } = require("../server");
 
 const router = express.Router();
 const tracer = trace.getTracer("payshield-backend");
+const awsAuditStore = require("../services/awsAuditStore");
 
 function buildFallbackModeResult(tx, startedAt) {
   return {
@@ -178,6 +179,12 @@ router.post("/submit", async (req, res) => {
           broadcastToClients({ type: "BLOCKCHAIN_LOGGED", txId: tx.txId, hash, alertId: alert?.alertId });
         })
         .catch((error) => logger.error({ txId: tx.txId, error: error.message }, "transaction_blockchain_log_failed"));
+    }
+
+    if (result.fraudScore >= 70) {
+      awsAuditStore.archiveFraudEvent(result)
+        .then((key) => logger.info({ txId: tx.txId, s3Key: key }, "fraud_event_archived_to_s3"))
+        .catch((error) => logger.error({ txId: tx.txId, error: error.message }, "s3_audit_archive_failed"));
     }
 
     if (!tx.suppressEmailAlerts && (result.fraudScore >= 70 || ["block", "quarantine"].includes(result.decision))) {
