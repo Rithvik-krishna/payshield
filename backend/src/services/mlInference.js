@@ -86,26 +86,79 @@ async function scoreTransaction(tx) {
     ]);
 
     const gnn = gnnR.status === "fulfilled" ? (gnnR.value.data.node_fraud_probability || 0.1) : 0.1;
-    const lstm = lstmR.status === "fulfilled" ? (lstmR.value.data.sequence_anomaly_score || 0.1) : 0.1;
-    const ens = ensR.status === "fulfilled" ? (ensR.value.data.ensemble_score || 0.1) : 0.1;
+    let lstm = lstmR.status === "fulfilled" ? (lstmR.value.data.sequence_anomaly_score || 0.1) : 0.1;
+    let ens = ensR.status === "fulfilled" ? (ensR.value.data.ensemble_score || 0.1) : 0.1;
     const bio = bioR.status === "fulfilled" ? (1 - (bioR.value.data.behavioral_trust_score || 0.9)) : 0.1;
-    const aml = amlR.status === "fulfilled" ? (amlR.value.data.aml_risk_score || 0.05) : 0.05;
+    let aml = amlR.status === "fulfilled" ? (amlR.value.data.aml_risk_score || 0.05) : 0.05;
     const bec = becR.status === "fulfilled" ? (becR.value.data.bec_score || 0.02) : 0.02;
 
-    const final = gnn * WEIGHTS.gnn + lstm * WEIGHTS.lstm + ens * WEIGHTS.ensemble + bio * WEIGHTS.biometrics + aml * WEIGHTS.aml + bec * WEIGHTS.bec;
-    const fraudScore = Math.round(final * 100);
+    const amount = Number(tx.amount || 0);
+    const merch = String(tx.merchant || tx.merchantName || "").toLowerCase();
+    const isUnverifiedMerchant = ["unknown", "shell", "new payee", "offshore", "crypto"].some((k) => merch.includes(k));
+
+    // Multi-factor amount anomaly escalation
+    if (amount >= 10_000_000) {
+      // >= 1 Crore INR: Extreme high-value wire
+      aml = Math.max(aml, 0.96);
+      lstm = Math.max(lstm, 0.94);
+      ens = Math.max(ens, 0.90);
+    } else if (amount >= 2_500_000) {
+      // >= 25 Lakhs INR
+      aml = Math.max(aml, 0.88);
+      lstm = Math.max(lstm, 0.82);
+      ens = Math.max(ens, 0.78);
+    } else if (amount >= 500_000) {
+      // >= 5 Lakhs INR
+      aml = Math.max(aml, 0.72);
+      lstm = Math.max(lstm, 0.65);
+      ens = Math.max(ens, 0.60);
+    } else if (amount >= 100_000) {
+      // >= 1 Lakh INR
+      aml = Math.max(aml, 0.45);
+    }
+
+    let final = gnn * WEIGHTS.gnn + lstm * WEIGHTS.lstm + ens * WEIGHTS.ensemble + bio * WEIGHTS.biometrics + aml * WEIGHTS.aml + bec * WEIGHTS.bec;
+
+    // Hard veto security rules for critical enterprise fraud:
+    // 1. Extreme amount anomaly (>= 1 Crore) or (>= 10 Lakhs to unverified / new payee)
+    if (amount >= 10_000_000) {
+      final = Math.max(final, 0.95);
+    } else if (amount >= 1_000_000 && isUnverifiedMerchant) {
+      final = Math.max(final, 0.92);
+    }
+
+    // 2. High-confidence BEC / Executive invoice redirection
+    if (bec >= 0.80) {
+      final = Math.max(final, 0.95);
+    } else if (bec >= 0.50) {
+      final = Math.max(final, 0.82);
+    }
+
+    // 3. Compound high-value wire + BEC coercion memo
+    if (amount >= 500_000 && bec >= 0.35) {
+      final = Math.max(final, 0.97);
+    }
+
+    const fraudScore = Math.min(99, Math.max(1, Math.round(final * 100)));
 
     let decision = "approve";
-    if (fraudScore >= 90 || bec >= 0.85) decision = "block";
-    else if (fraudScore >= 70) decision = "quarantine";
-    else if (fraudScore >= 50) decision = "step_up_auth";
+    if (fraudScore >= 85 || bec >= 0.80 || amount >= 10_000_000) decision = "block";
+    else if (fraudScore >= 70 || bec >= 0.50) decision = "quarantine";
+    else if (fraudScore >= 45) decision = "step_up_auth";
 
-    const explanation = await geminiExplainer.explainTransaction({
-      tx,
-      fraudScore,
-      decision,
-      modelScores: { gnn, lstm, xgboost: ens, biometrics: bio, aml, bec },
-    });
+    const riskLevel = fraudScore >= 85 ? "CRITICAL" : fraudScore >= 70 ? "HIGH" : fraudScore >= 45 ? "MEDIUM" : "LOW";
+
+    let explanation;
+    try {
+      explanation = await geminiExplainer.explainTransaction({
+        tx,
+        fraudScore,
+        decision,
+        modelScores: { gnn, lstm, xgboost: ens, biometrics: bio, aml, bec },
+      });
+    } catch (_err) {
+      explanation = buildExplanation(tx, fraudScore, decision, bec, gnn, aml);
+    }
 
     const modelScores = { gnn, lstm, xgboost: ens, biometrics: bio, aml, bec };
     const maxDiff = Math.max(...Object.values(modelScores)) - Math.min(...Object.values(modelScores));
@@ -113,7 +166,7 @@ async function scoreTransaction(tx) {
     const result = {
       fraudScore,
       decision,
-      riskLevel: fraudScore >= 90 ? "CRITICAL" : fraudScore >= 70 ? "HIGH" : fraudScore >= 50 ? "MEDIUM" : "LOW",
+      riskLevel,
       modelScores,
       amlScore: aml,
       becScore: bec,

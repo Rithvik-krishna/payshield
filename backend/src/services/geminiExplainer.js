@@ -1,7 +1,17 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let genAI = null;
+try {
+  const { GoogleGenerativeAI } = require("@google/generative-ai");
+  if (process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+} catch (_err) {
+  genAI = null;
+}
 
 async function explainTransaction({ tx, fraudScore, decision, modelScores }) {
+  if (!genAI) {
+    throw new Error("Gemini AI client not initialized or API key missing");
+  }
   const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
   const prompt = `You are a fraud analyst AI for PayShield, a payment fraud detection system.

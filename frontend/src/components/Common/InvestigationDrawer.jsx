@@ -167,7 +167,7 @@ export default function InvestigationDrawer({ transaction, isOpen, onClose, onAc
                     <Smartphone size={13} /> Device / Method
                   </div>
                   <div style={{ fontSize: 12, color: "#e2e8f0", marginTop: 4 }}>
-                    {transaction.paymentMethod || "UPI"} ? {transaction.deviceId ? transaction.deviceId.slice(0, 10) : "Registered Device"}
+                    {transaction.paymentMethod || "UPI"} &bull; {transaction.deviceId ? transaction.deviceId.slice(0, 10) : "Registered Device"}
                   </div>
                 </div>
               </div>
