@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { submitTransaction, simulateFraud, sendTestBecEmail, testSms, injectObservabilityFailure } from "../../services/api";
 import useFraudStore from "../../store/fraudStore";
-import { formatINR } from "../../theme/designSystem";
+import { formatINR, normalizeScore } from "../../theme/designSystem";
 
 const TRANSACTION_PRESETS = [
   { id: "normal", label: "Clean Swiggy UPI", amount: 2000, merchant: "Swiggy", method: "UPI", memo: "Dinner order", risk: "LOW", color: "#10b981" },
@@ -23,13 +23,49 @@ const TRANSACTION_PRESETS = [
 ];
 
 const ATTACK_PATTERNS = [
-  { id: "fraud_ring", label: "Fraud Ring (GNN)", desc: "Mule account network adjacency" },
-  { id: "account_takeover", label: "Account Takeover", desc: "Biometric & device sudden shift" },
-  { id: "synthetic_identity", label: "Synthetic ID", desc: "Unlinked credit profile" },
-  { id: "card_not_present", label: "Card Not Present", desc: "E-commerce card testing burst" },
-  { id: "bec", label: "Executive BEC", desc: "CEO wire fraud memo NLP" },
-  { id: "micro_bot", label: "Micro Bot Attack", desc: "High frequency micro-transactions" },
+  { id: "micro_bot", label: "Micro Bot Attack (5 Txs)", desc: "Rapid burst of 5 micro-transactions" },
+  { id: "fraud_ring", label: "Fraud Ring GNN (4 Txs)", desc: "Mule account syndicate graph flow" },
+  { id: "account_takeover", label: "Account Takeover (3 Txs)", desc: "Unrecognized device escalating balance drain" },
+  { id: "card_not_present", label: "Card Not Present (4 Txs)", desc: "E-commerce multi-merchant authorization burst" },
+  { id: "synthetic_identity", label: "Synthetic ID (3 Txs)", desc: "Probing and maxing synthetic credit lines" },
+  { id: "bec", label: "Executive BEC (2 Txs)", desc: "Urgent vendor wire & CEO memo escalation" },
 ];
+
+const ATTACK_CAMPAIGNS = {
+  micro_bot: [
+    { amount: 35, merchant: "Google Play Store", method: "UPI", memo: "Micro auth ping (Bot Worker 01)", deviceId: "bot-cluster-1" },
+    { amount: 75, merchant: "Digital Goods Pay", method: "UPI", memo: "Micro authorization probe (Bot Worker 01)", deviceId: "bot-cluster-1" },
+    { amount: 140, merchant: "FastPay Gateway", method: "UPI", memo: "Rapid API card probe (Bot Worker 01)", deviceId: "bot-cluster-1" },
+    { amount: 280, merchant: "Razorpay Checkout", method: "UPI", memo: "Automated micro debit burst (Bot Worker 01)", deviceId: "bot-cluster-1" },
+    { amount: 850, merchant: "Unknown Vendor", method: "UPI", memo: "High frequency micro drain (Bot Worker 01)", deviceId: "bot-cluster-1" },
+  ],
+  fraud_ring: [
+    { amount: 18000, merchant: "Mule Hub Alpha", method: "NEFT", memo: "Syndicate fan-out layer 1", userId: "acc-mule-01" },
+    { amount: 24500, merchant: "Mule Node Beta", method: "NEFT", memo: "Circular mule adjacency hop", userId: "acc-mule-02" },
+    { amount: 36000, merchant: "Shell Merchants Pvt Ltd", method: "NEFT", memo: "Mule cluster balance aggregation", userId: "acc-mule-03" },
+    { amount: 49500, merchant: "Offshore Settlement Corp", method: "NEFT", memo: "Final syndicate cashout withdrawal", userId: "acc-mule-04" },
+  ],
+  account_takeover: [
+    { amount: 150, merchant: "Unknown Payee", method: "UPI", memo: "Unrecognized device baseline probe", deviceId: "hacked-sim-x" },
+    { amount: 4500, merchant: "Crypto P2P Desk", method: "UPI", memo: "Immediate post-credential reset debit", deviceId: "hacked-sim-x" },
+    { amount: 42000, merchant: "Shell Account Transfer", method: "NEFT", memo: "Full balance sweep - Impossible travel location", deviceId: "hacked-sim-x" },
+  ],
+  card_not_present: [
+    { amount: 120, merchant: "Steam Games", method: "UPI", memo: "CVV brute force ping" },
+    { amount: 480, merchant: "Flipkart Pay", method: "UPI", memo: "E-commerce small ticket test" },
+    { amount: 3500, merchant: "Amazon India", method: "UPI", memo: "Rapid card testing escalation" },
+    { amount: 24900, merchant: "Croma Electronics", method: "UPI", memo: "High-value card unauthorized checkout" },
+  ],
+  synthetic_identity: [
+    { amount: 1500, merchant: "Instant Credit Pay", method: "UPI", memo: "Unlinked credit profile authorization" },
+    { amount: 8500, merchant: "BNPL Platform", method: "UPI", memo: "Synthetic identity credit utilization" },
+    { amount: 32000, merchant: "CashOut Terminal", method: "NEFT", memo: "Maximum synthetic credit line drain" },
+  ],
+  bec: [
+    { amount: 15000, merchant: "New Payee 4821", method: "NEFT", memo: "URGENT: update vendor IBAN immediately. Do not call to verify. Confidential." },
+    { amount: 58000, merchant: "Apex Settlement Corp", method: "NEFT", memo: "CONFIDENTIAL: Executive wire instruction authorized by CEO - immediate settlement" },
+  ],
+};
 
 export default function QuickInjectPanel({ onTransactionInjected }) {
   const [running, setRunning] = useState(false);
@@ -59,10 +95,11 @@ export default function QuickInjectPanel({ onTransactionInjected }) {
         source: "MANUAL",
         timestamp: new Date().toISOString(),
       });
+      res.fraudScore = normalizeScore(res.fraudScore);
       addTransaction(res);
       setSelectedTransaction(res);
       onTransactionInjected?.(res);
-      setStatusMsg(`Injected: ${preset.label} -> Score ${res.fraudScore}/100 (${res.decision.toUpperCase()})`);
+      setStatusMsg(`Injected: ${preset.label} -> Score ${res.fraudScore}/100 (${String(res.decision || "approve").toUpperCase()})`);
     } catch (err) {
       console.error("Injection failed:", err);
       setStatusMsg(`Injection failed: ${err.message}`);
@@ -75,33 +112,41 @@ export default function QuickInjectPanel({ onTransactionInjected }) {
   const runAttackPattern = async (patternId) => {
     setRunning(true);
     setActiveAction(patternId);
-    setStatusMsg(`Simulating ${patternId}...`);
+    const steps = ATTACK_CAMPAIGNS[patternId] || ATTACK_CAMPAIGNS.micro_bot;
+    setStatusMsg(`Initiating ${patternId} attack sequence (${steps.length} sequential transactions)...`);
     try {
-      const { result, transaction, alert } = await simulateFraud({ pattern: patternId, amount: 12500 });
-      const tx = {
-        txId: transaction.txId,
-        amount: transaction.amount,
-        currency: transaction.currency || "INR",
-        merchant: transaction.merchantName || "Simulated Target",
-        country: "IN",
-        fraudScore: Math.round((result.fraudScore || 0) * 100),
-        riskSignal: 1,
-        decision: result.decision || "quarantine",
-        explanation: result.explanation,
-        detectedPattern: result.detectedPattern || patternId,
-        amlRiskScore: result.amlScore || 0.45,
-        suspiciousAccounts: result.suspiciousAccounts || [],
-        timestamp: new Date().toISOString(),
-        userId: "rithvikkrishnadk@gmail.com",
-        source: "SIMULATOR",
-      };
-      addTransaction(tx);
-      if (alert) {
-        addAlert({ ...alert, severity: String(alert.severity || "high").toUpperCase() });
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        setStatusMsg(`Firing ${patternId} [${i + 1}/${steps.length}]: ${step.merchant} (${formatINR(step.amount)})...`);
+        const res = await submitTransaction({
+          amount: step.amount,
+          merchant: step.merchant,
+          merchantName: step.merchant,
+          paymentMethod: step.method,
+          currency: "INR",
+          country: "IN",
+          memo: step.memo,
+          userEmail: "rithvikkrishnadk@gmail.com",
+          userName: "Rithvik",
+          deviceId: step.deviceId || `sim-device-${patternId}`,
+          userId: step.userId || "sim-user",
+          source: "SIMULATOR",
+          timestamp: new Date().toISOString(),
+          behavioralData: {
+            typingCadenceDeviation: 0.94,
+            touchPressure: 0.08,
+            copyPasteRatio: 0.92,
+          },
+        });
+        res.fraudScore = normalizeScore(res.fraudScore);
+        addTransaction(res);
+        setSelectedTransaction(res);
+        onTransactionInjected?.(res);
+        if (i < steps.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
       }
-      setSelectedTransaction(tx);
-      onTransactionInjected?.(tx);
-      setStatusMsg(`Simulated ${patternId} -> Score ${tx.fraudScore}/100`);
+      setStatusMsg(`Attack Complete: Fired all ${steps.length} sequential transactions for ${patternId}!`);
     } catch (err) {
       console.error("Attack simulation failed:", err);
       setStatusMsg(`Simulation failed: ${err.message}`);

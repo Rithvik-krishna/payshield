@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, AlertTriangle, AlertOctagon, Mail } from "lucide-react";
-import { getRiskTier, DECISION_STYLES } from "../../theme/designSystem";
+import { getRiskTier, normalizeScore, DECISION_STYLES } from "../../theme/designSystem";
 
 function polarToCartesian(cx, cy, r, deg) {
   const rad = ((deg - 90) * Math.PI) / 180;
@@ -17,8 +17,9 @@ function arcPath(cx, cy, r, start, end) {
 }
 
 export default function FraudScoreGauge({ score = 0, decision = "pending", reason }) {
-  const tier = getRiskTier(score);
-  const filled = (Math.min(100, Math.max(0, score)) / 100) * 360;
+  const normalized = normalizeScore(score);
+  const tier = getRiskTier(normalized);
+  const filled = (normalized / 100) * 360;
   const ds = DECISION_STYLES[String(decision).toLowerCase()] || DECISION_STYLES.pending;
 
   return (
@@ -78,13 +79,13 @@ export default function FraudScoreGauge({ score = 0, decision = "pending", reaso
 
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <motion.div
-            key={score}
+            key={normalized}
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
             style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, color: "#f8fafc", fontFamily: "'JetBrains Mono', monospace" }}
           >
-            {score}
+            {normalized}
           </motion.div>
           <div style={{ fontSize: 11, fontWeight: 700, color: tier.color, marginTop: 4, letterSpacing: "0.06em" }}>
             {tier.label}

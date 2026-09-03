@@ -64,8 +64,15 @@ export const RISK_TIERS = {
   },
 };
 
-export function getRiskTier(score) {
+export function normalizeScore(score) {
   const num = Number(score) || 0;
+  if (num > 100) return Math.min(100, Math.round(num / 100));
+  if (num > 0 && num <= 1) return Math.round(num * 100);
+  return Math.min(100, Math.max(0, Math.round(num)));
+}
+
+export function getRiskTier(score) {
+  const num = normalizeScore(score);
   if (num >= 85) return RISK_TIERS.critical;
   if (num >= 70) return RISK_TIERS.high;
   if (num >= 35) return RISK_TIERS.medium;

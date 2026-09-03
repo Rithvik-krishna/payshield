@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, Filter, ArrowUpRight, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { RiskScoreBadge, DecisionBadge, ChannelBadge } from "../Common/RiskBadge";
-import { formatINR } from "../../theme/designSystem";
+import { formatINR, normalizeScore } from "../../theme/designSystem";
 
 const FILTERS = ["All", "Flagged", "Blocked", "Cleared", "Gmail", "SMS"];
 
@@ -135,7 +135,7 @@ export default function TransactionFeed({ transactions = [], onSelect, selectedT
             <AnimatePresence>
               {filtered.map((tx) => {
                 const isSelected = selectedTxId === tx.txId;
-                const score = Number(tx.fraudScore || 0);
+                const score = normalizeScore(tx.fraudScore);
                 return (
                   <motion.tr
                     key={tx.txId}
