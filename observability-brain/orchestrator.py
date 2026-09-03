@@ -145,6 +145,7 @@ class Orchestrator:
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                         "rootCause": root_cause.to_dict(),
                     }
+                    self.consecutive_normal_cycles = 0
                     self.latest_root_cause = root_cause
                     self.anomalies.appendleft(anomaly_event)
                     ANOMALY_EVENTS_TOTAL.inc()
@@ -162,6 +163,13 @@ class Orchestrator:
                         "remediation": remediation_record.to_dict(),
                     })
                 else:
+                    self.consecutive_normal_cycles = getattr(self, "consecutive_normal_cycles", 0) + 1
+                    if self.consecutive_normal_cycles >= 3 and self.latest_root_cause is not None:
+                        self.latest_root_cause = None
+                        await self.broadcast({
+                            "type": "SYSTEM_RECOVERED",
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        })
                     LOGGER.info("anomaly_suppressed", extra={"confidence": root_cause.confidence, "service": root_cause.root_cause_service})
             except Exception as exc:
                 LOGGER.error("orchestrator_cycle_failed", extra={"error": str(exc)})

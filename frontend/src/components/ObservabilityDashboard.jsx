@@ -208,6 +208,9 @@ export default function ObservabilityDashboard() {
         if (payload.type === "REMEDIATION_EXECUTED") {
           setRemediations((current) => [payload.remediation, ...current].slice(0, 50));
         }
+        if (payload.type === "SYSTEM_RECOVERED") {
+          setLatestRootCause(null);
+        }
       };
     } catch (_error) {
     }
@@ -245,12 +248,15 @@ export default function ObservabilityDashboard() {
   const fallbackDurationSeconds = Math.max(0, Math.round((systemStatus?.fallbackDurationMs || 0) / 1000));
   const incidentTimestampMs = displayedRootCause?.timestamp ? Date.parse(displayedRootCause.timestamp) : 0;
   const remediationTimestampMs = systemStatus?.lastRemediationTimestamp ? Date.parse(systemStatus.lastRemediationTimestamp) : 0;
+  const incidentAgeMs = incidentTimestampMs ? Date.now() - incidentTimestampMs : 0;
   const incidentRecovered =
     Boolean(displayedRootCause?.root_cause_service) &&
     !fallbackActive &&
     Boolean(systemStatus?.mlEngineHealthy) &&
-    Boolean(remediationTimestampMs) &&
-    remediationTimestampMs >= incidentTimestampMs;
+    (
+      (Boolean(remediationTimestampMs) && remediationTimestampMs >= incidentTimestampMs) ||
+      incidentAgeMs > 15000
+    );
 
   const currentStateLabel = incidentRecovered ? "Recovered" : fallbackActive ? "Remediating" : "Monitoring";
   const serviceScores = useMemo(() => {
