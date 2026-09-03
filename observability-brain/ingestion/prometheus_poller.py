@@ -1,4 +1,5 @@
 import asyncio
+import os
 import socket
 import time
 from collections import deque
@@ -9,7 +10,7 @@ import httpx
 import docker
 
 
-PROMETHEUS_URL = "http://prometheus:9090"
+PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
 
 
 class PrometheusPoller:
@@ -82,17 +83,32 @@ class PrometheusPoller:
             except Exception:
                 snapshot[name] = 0.0
 
-        snapshot["frontend_health"] = self._probe_tcp("payshield-frontend", 5173)
-        snapshot["backend_health"] = await self._probe_http("http://payshield-backend:3001/health")
-        snapshot["ml_engine_health"] = await self._probe_http("http://payshield-ml-engine:8000/health")
-        snapshot["blockchain_rpc_health"] = self._probe_tcp("payshield-blockchain", 8545)
-        snapshot["redis_tcp_health"] = self._probe_tcp("redis", 6379)
-        snapshot["frontend_container_running"] = self._container_running("payshield-frontend")
-        snapshot["backend_container_running"] = self._container_running("payshield-backend")
-        snapshot["ml_engine_container_running"] = self._container_running("payshield-ml-engine")
-        snapshot["blockchain_container_running"] = self._container_running("payshield-blockchain")
-        snapshot["simulator_container_running"] = self._container_running("payshield-simulator")
-        snapshot["redis_container_running"] = self._container_running("redis")
+        frontend_host = os.getenv("FRONTEND_HOST", "127.0.0.1")
+        backend_url = os.getenv("BACKEND_URL", "http://localhost:3001")
+        ml_engine_url = os.getenv("ML_ENGINE_URL", "http://localhost:8000")
+        blockchain_host = os.getenv("BLOCKCHAIN_HOST", "127.0.0.1")
+        redis_host = os.getenv("REDIS_HOST", "127.0.0.1")
+
+        snapshot["frontend_health"] = self._probe_tcp(frontend_host, 5173)
+        snapshot["backend_health"] = await self._probe_http(f"{backend_url}/health")
+        snapshot["ml_engine_health"] = await self._probe_http(f"{ml_engine_url}/health")
+        snapshot["blockchain_rpc_health"] = self._probe_tcp(blockchain_host, 8545)
+        snapshot["redis_tcp_health"] = self._probe_tcp(redis_host, 6379)
+
+        if self.docker:
+            snapshot["frontend_container_running"] = self._container_running("payshield-frontend")
+            snapshot["backend_container_running"] = self._container_running("payshield-backend")
+            snapshot["ml_engine_container_running"] = self._container_running("payshield-ml-engine")
+            snapshot["blockchain_container_running"] = self._container_running("payshield-blockchain")
+            snapshot["simulator_container_running"] = self._container_running("payshield-simulator")
+            snapshot["redis_container_running"] = self._container_running("redis")
+        else:
+            snapshot["frontend_container_running"] = snapshot["frontend_health"]
+            snapshot["backend_container_running"] = snapshot["backend_health"]
+            snapshot["ml_engine_container_running"] = snapshot["ml_engine_health"]
+            snapshot["blockchain_container_running"] = snapshot["blockchain_rpc_health"]
+            snapshot["simulator_container_running"] = 1.0
+            snapshot["redis_container_running"] = snapshot["redis_tcp_health"]
 
         with self.lock:
             self.buffer.append(snapshot)

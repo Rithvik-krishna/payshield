@@ -18,9 +18,9 @@ PRIVATE_KEY = "0x11ee3108a03081fe260ecdc106554d09d9d1209bcafd46942b10e02943effc4
 
 
 class BlockchainLogger:
-    def __init__(self, rpc_url: str = "http://payshield-blockchain:8545") -> None:
-        self.rpc_url = rpc_url
-        self.web3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 5}))
+    def __init__(self, rpc_url: str | None = None) -> None:
+        self.rpc_url = rpc_url or os.getenv("BLOCKCHAIN_RPC_URL", "http://localhost:8545")
+        self.web3 = Web3(Web3.HTTPProvider(self.rpc_url, request_kwargs={"timeout": 5}))
         self.contract = self._load_contract()
         self.account = self.web3.eth.account.from_key(PRIVATE_KEY)
 
