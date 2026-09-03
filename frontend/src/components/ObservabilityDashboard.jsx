@@ -264,10 +264,10 @@ export default function ObservabilityDashboard() {
     const next = {
       "payshield-frontend": 0.04,
       "payshield-backend": fallbackActive ? 0.72 : 0.08,
-      "payshield-ml-engine": systemStatus?.mlEngineHealthy ? (incidentRecovered ? 0.08 : compositeScoreMap["payshield-ml-engine"] || 0.08) : 0.9,
-      "payshield-blockchain": systemStatus?.blockchainHealthy ? 0.04 : 0.9,
+      "payshield-ml-engine": systemStatus ? (systemStatus.mlEngineHealthy ? (incidentRecovered ? 0.08 : compositeScoreMap["payshield-ml-engine"] || 0.08) : 0.9) : 0.08,
+      "payshield-blockchain": systemStatus ? (systemStatus.blockchainHealthy ? 0.04 : 0.9) : 0.04,
       "payshield-simulator": 0.04,
-      redis: systemStatus?.cacheMode === "memory_fallback" ? 0.45 : 0.08,
+      redis: systemStatus ? (systemStatus.cacheMode === "memory_fallback" ? 0.45 : 0.08) : 0.08,
     };
 
     if (!incidentRecovered && displayedRootCause?.root_cause_service && compositeScoreMap[displayedRootCause.root_cause_service]) {
