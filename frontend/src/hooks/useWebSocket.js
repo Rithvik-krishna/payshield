@@ -89,11 +89,19 @@ export default function useWebSocket() {
         case "BLOCKCHAIN_LOGGED":
           updateTransaction(payload.txId, { blockchainTxHash: payload.hash });
           break;
-        default:
-          break;
+              default:
+                break;
+            }
+          } catch (_err) {
+            // ignore non-json messages
+          }
+        };
+      } catch (_err) {
+        if (!isDisposed) {
+          reconnectTimeout = setTimeout(connect, 2000);
+        }
       }
-    };
-  }
+    }
 
   connect();
 
