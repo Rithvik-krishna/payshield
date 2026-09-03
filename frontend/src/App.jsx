@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "./components/Layout/AppShell";
 import InvestigationDrawer from "./components/Common/InvestigationDrawer";
+import QuickInjectPanel from "./components/Common/QuickInjectPanel";
 import AlertNotificationToast from "./components/Shared/AlertNotificationToast";
 import MetricsBar from "./components/Dashboard/MetricsBar";
 import FraudScoreGauge from "./components/Dashboard/FraudScoreGauge";
@@ -174,6 +175,8 @@ function MainAppShell() {
       {activeTab === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <MetricsBar metrics={metrics} />
+
+          <QuickInjectPanel onTransactionInjected={handleSelectTransaction} />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

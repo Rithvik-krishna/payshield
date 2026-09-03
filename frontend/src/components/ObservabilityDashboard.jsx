@@ -349,31 +349,76 @@ export default function ObservabilityDashboard() {
             </div>
           </div>
 
-          {/* Live Anomaly Feed */}
-          <div style={{ background: "linear-gradient(135deg, #0d1527 0%, #0a0f1d 100%)", borderRadius: 16, padding: "20px", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", marginBottom: 12 }}>
-              Live Anomaly Event Log
-            </div>
-            {anomalies.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 16px", color: "#64748b", fontSize: 12 }}>
-                Waiting for telemetry anomalies. Click &apos;Simulation &amp; Failure Testing&apos; to trigger live RCA.
+            {/* Live Anomaly Feed */}
+            <div style={{ background: "linear-gradient(135deg, #0d1527 0%, #0a0f1d 100%)", borderRadius: 16, padding: "20px", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", marginBottom: 12 }}>
+                Live Anomaly Event Log
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
-                {anomalies.map((a, i) => (
-                  <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>{humanize(a.service || a.rootCause?.root_cause_service || "Anomaly")}</span>
-                      <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 8 }}>{a.description || a.rootCause?.failure_pattern || "Anomaly detected"}</span>
+              {anomalies.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px 16px", color: "#64748b", fontSize: 12 }}>
+                  Waiting for telemetry anomalies. Click any fault injection button below to trigger live RCA.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
+                  {anomalies.map((a, i) => (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>{humanize(a.service || a.rootCause?.root_cause_service || "Anomaly")}</span>
+                        <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 8 }}>{a.description || a.rootCause?.failure_pattern || "Anomaly detected"}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{new Date().toLocaleTimeString()}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>{new Date().toLocaleTimeString()}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* AIOps Chaos Fault Injection Controls */}
+            <div style={{ background: "linear-gradient(135deg, #0d1527 0%, #0a0f1d 100%)", borderRadius: 16, padding: "20px", border: "1px solid rgba(239, 68, 68, 0.25)", borderLeft: "4px solid #ef4444" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
+                    AIOps Chaos Fault Injection (Live Demo Controls)
                   </div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                    Trigger realistic microservice degradation to watch the Bi-LSTM root cause consensus and 15s self-healing loop live
+                  </div>
+                </div>
+                {injectionStatus && (
+                  <div style={{ fontSize: 11, color: "#38bdf8", background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.25)", padding: "4px 10px", borderRadius: 8, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {injectionStatus.message}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                {failureTypes.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => handleInject(f.id)}
+                    disabled={injecting !== null}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      borderLeft: "3px solid #ef4444",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      textAlign: "left",
+                      cursor: injecting ? "not-allowed" : "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>{f.label}</span>
+                      <Play size={12} color="#ef4444" />
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{f.desc}</div>
+                  </button>
                 ))}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Tab 2: RCA & Telemetry Evidence */}
       {activeTab === "rca" && (
