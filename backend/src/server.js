@@ -100,6 +100,7 @@ app.use((req, res, next) => {
 
 app.use("/api/transactions", require("./routes/transactions"));
 app.use("/api/fraud", require("./routes/fraud"));
+app.use("/api/assistant", require("./routes/assistant"));
 app.use("/api/blockchain", require("./routes/blockchain"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/federated", require("./routes/federated"));

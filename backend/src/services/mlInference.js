@@ -14,6 +14,8 @@ const tracer = trace.getTracer("payshield-backend");
 
 const WEIGHTS = { gnn: 0.28, lstm: 0.22, ensemble: 0.20, biometrics: 0.15, aml: 0.10, bec: 0.05 };
 
+const geminiExplainer = require("./geminiExplainer");
+
 async function postToMl(endpoint, payload, timeout = 5000) {
   const span = tracer.startSpan("ml_engine_http_call", {
     attributes: {
@@ -98,19 +100,12 @@ async function scoreTransaction(tx) {
     else if (fraudScore >= 70) decision = "quarantine";
     else if (fraudScore >= 50) decision = "step_up_auth";
 
-    let explanation;
-    try {
-      const shapR = await postToMl("/explainability/explain", {
-        features,
-        model_scores: { gnn, lstm, ens, bio, aml, bec },
-        decision,
-        fraud_score: fraudScore,
-        tx,
-      }, 3000);
-      explanation = shapR.data;
-    } catch (_error) {
-      explanation = buildExplanation(tx, fraudScore, decision, bec, gnn, aml);
-    }
+    const explanation = await geminiExplainer.explainTransaction({
+      tx,
+      fraudScore,
+      decision,
+      modelScores: { gnn, lstm, xgboost: ens, biometrics: bio, aml, bec },
+    });
 
     const modelScores = { gnn, lstm, xgboost: ens, biometrics: bio, aml, bec };
     const maxDiff = Math.max(...Object.values(modelScores)) - Math.min(...Object.values(modelScores));
