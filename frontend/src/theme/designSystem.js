@@ -90,5 +90,5 @@ export const SOURCE_STYLES = {
 
 export function formatINR(amount) {
   const num = Number(amount) || 0;
-  return '?' + num.toLocaleString('en-IN');
+  return "\u20B9" + num.toLocaleString("en-IN");
 }
