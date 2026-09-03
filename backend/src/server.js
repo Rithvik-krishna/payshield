@@ -228,7 +228,7 @@ setInterval(refreshRuntimeMetrics, 2000);
 refreshRuntimeMetrics();
 
 const PORT = Number(process.env.PORT || 3001);
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   logger.info({
     port: PORT,
     api: `http://localhost:${PORT}`,
