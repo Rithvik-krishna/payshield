@@ -14,7 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 BLOCKCHAIN_DIR = Path("/app/blockchain") if Path("/app/blockchain").exists() else ROOT_DIR / "Blockchain"
 DEPLOYMENT_PATH = Path(os.getenv("OBSERVABILITY_LEDGER_ADDRESS_PATH", str(BLOCKCHAIN_DIR / "deployments" / "observability_address.json")))
 ARTIFACT_PATH = BLOCKCHAIN_DIR / "artifacts" / "contracts" / "ObservabilityLedger.sol" / "ObservabilityLedger.json"
-PRIVATE_KEY = "0x11ee3108a03081fe260ecdc106554d09d9d1209bcafd46942b10e02943effc4a"
+PRIVATE_KEY = os.getenv("PRIVATE_KEY", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 
 
 class BlockchainLogger:

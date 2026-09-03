@@ -9,16 +9,23 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def setup_opentelemetry(app) -> None:
+    if os.getenv("ENABLE_OTEL", "false").lower() != "true" and "OTEL_EXPORTER_OTLP_ENDPOINT" not in os.environ:
+        return
+
     if isinstance(trace.get_tracer_provider(), TracerProvider):
         FastAPIInstrumentor.instrument_app(app)
         return
 
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317").replace("http://", "").replace("https://", "")
     resource = Resource.create({"service.name": "payshield-ml-engine"})
     provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "jaeger:4317").replace("http://", "").replace("https://", ""),
-        insecure=True,
-    )
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-    FastAPIInstrumentor.instrument_app(app)
+    try:
+        exporter = OTLPSpanExporter(
+            endpoint=endpoint,
+            insecure=True,
+        )
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+        trace.set_tracer_provider(provider)
+        FastAPIInstrumentor.instrument_app(app)
+    except Exception:
+        pass

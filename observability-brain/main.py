@@ -111,6 +111,26 @@ async def startup() -> None:
     logger.info("observability_brain_started")
 
 
+@app.get("/")
+async def root() -> dict:
+    return {
+        "service": "payshield-observability-brain",
+        "status": "ok",
+        "health": "/health",
+        "metrics": "/metrics",
+        "docs": "/docs",
+        "routes": [
+            "/health",
+            "/metrics",
+            "/api/anomalies",
+            "/api/root-cause/latest",
+            "/api/remediation/history",
+            "/api/inject-failure",
+            "/ws/live-feed",
+        ],
+    }
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": "observability-brain", "timestamp": datetime.now(timezone.utc).isoformat()}

@@ -78,6 +78,8 @@ class JaegerPoller:
         while True:
             try:
                 await self.poll_once()
+            except Exception:
+                pass
             finally:
                 await asyncio.sleep(3)
 
